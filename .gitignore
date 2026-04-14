@@ -7,9 +7,13 @@ dist/
 .env.*.local
 
 backend/dev.db
+backend/prisma/dev.db
 backend/*.db
+backend/prisma/*.db
 backend/*.db-journal
+backend/prisma/*.db-journal
 backend/*.bak
+backend/prisma/*.bak
 
 backend/logs/
 backend/exports/
