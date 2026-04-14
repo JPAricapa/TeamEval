@@ -1,0 +1,519 @@
+// ============================================================
+// SCHEMA PRISMA - Plataforma de Evaluación y Analítica de Trabajo en Equipo
+// Motor: PostgreSQL
+// Versión: 1.0.0
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// MODELO: Usuario
+// ============================================================
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  firstName       String    @map("first_name")
+  lastName        String    @map("last_name")
+  role            String
+  institutionId   String?   @map("institution_id")
+  isActive        Boolean   @default(true) @map("is_active")
+  avatarUrl       String?   @map("avatar_url")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  institution       Institution?        @relation(fields: [institutionId], references: [id])
+  teacherCourses    Course[]            @relation("TeacherCourses")
+  studentGroups     GroupMember[]
+  teamMemberships   TeamMember[]
+  refreshTokens         RefreshToken[]
+  passwordResetTokens   PasswordResetToken[]
+  invitations           UserInvitation[]
+  evaluationsGiven      Evaluation[]        @relation("EvaluatorRelation")
+  evaluationsReceived Evaluation[]      @relation("EvaluatedRelation")
+  rubrics           Rubric[]            @relation("RubricCreator")
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+// ============================================================
+// MODELO: Token de actualización (Refresh Token)
+// ============================================================
+
+model RefreshToken {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  token       String    @unique
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  isRevoked   Boolean   @default(false) @map("is_revoked")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+// MODELO: Token de restablecimiento de contraseña
+// ============================================================
+
+model PasswordResetToken {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  usedAt      DateTime? @map("used_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+// ============================================================
+// MODELO: Invitación de usuario
+// ============================================================
+
+model UserInvitation {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  acceptedAt  DateTime? @map("accepted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_invitations")
+}
+
+// ============================================================
+// MODELO: Institución
+// ============================================================
+
+model Institution {
+  id          String    @id @default(uuid())
+  name        String
+  code        String    @unique
+  logoUrl     String?   @map("logo_url")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  users     User[]
+  programs  Program[]
+  rubrics   Rubric[]
+  courses   Course[]
+
+  @@map("institutions")
+}
+
+// ============================================================
+// MODELO: Programa académico
+// ============================================================
+
+model Program {
+  id            String    @id @default(uuid())
+  institutionId String    @map("institution_id")
+  name          String
+  code          String
+  department    String?
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  courses       Course[]
+
+  @@unique([institutionId, code])
+  @@map("programs")
+}
+
+// ============================================================
+// MODELO: Período académico
+// ============================================================
+
+model AcademicPeriod {
+  id          String    @id @default(uuid())
+  name        String
+  code        String    @unique
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime  @map("end_date")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  courses     Course[]
+
+  @@map("academic_periods")
+}
+
+// ============================================================
+// MODELO: Curso
+// ============================================================
+
+model Course {
+  id              String    @id @default(uuid())
+  institutionId   String    @map("institution_id")
+  programId       String?   @map("program_id")
+  periodId        String    @map("period_id")
+  teacherId       String    @map("teacher_id")
+  name            String
+  code            String
+  credits         Int?
+  description     String?
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  institution     Institution     @relation(fields: [institutionId], references: [id])
+  program         Program?        @relation(fields: [programId], references: [id])
+  period          AcademicPeriod  @relation(fields: [periodId], references: [id])
+  teacher         User            @relation("TeacherCourses", fields: [teacherId], references: [id])
+  groups          Group[]
+  evaluationProcesses EvaluationProcess[]
+  courseRubrics   CourseRubric[]
+
+  @@map("courses")
+}
+
+// ============================================================
+// MODELO: Grupo
+// ============================================================
+
+model Group {
+  id          String    @id @default(uuid())
+  courseId    String    @map("course_id")
+  name        String
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  course    Course        @relation(fields: [courseId], references: [id])
+  members   GroupMember[]
+  teams     Team[]
+
+  @@map("groups")
+}
+
+// ============================================================
+// MODELO: Miembro de grupo
+// ============================================================
+
+model GroupMember {
+  id          String    @id @default(uuid())
+  groupId     String    @map("group_id")
+  userId      String    @map("user_id")
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+  isActive    Boolean   @default(true) @map("is_active")
+
+  group   Group @relation(fields: [groupId], references: [id])
+  user    User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+}
+
+// ============================================================
+// MODELO: Equipo de trabajo
+// ============================================================
+
+model Team {
+  id          String    @id @default(uuid())
+  groupId     String    @map("group_id")
+  name        String
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  group     Group         @relation(fields: [groupId], references: [id])
+  members   TeamMember[]
+  results   ConsolidatedResult[]
+
+  @@map("teams")
+}
+
+// ============================================================
+// MODELO: Miembro de equipo
+// ============================================================
+
+model TeamMember {
+  id          String    @id @default(uuid())
+  teamId      String    @map("team_id")
+  userId      String    @map("user_id")
+  role        String?
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+  isActive    Boolean   @default(true) @map("is_active")
+
+  team    Team  @relation(fields: [teamId], references: [id])
+  user    User  @relation(fields: [userId], references: [id])
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+// ============================================================
+// MODELO: Rúbrica
+// ============================================================
+
+model Rubric {
+  id            String    @id @default(uuid())
+  institutionId String?   @map("institution_id")
+  creatorId     String    @map("creator_id")
+  name          String
+  description   String?
+  version       Int       @default(1)
+  parentId      String?   @map("parent_id")   // Para versionamiento
+  isPublic      Boolean   @default(false) @map("is_public")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  institution     Institution?    @relation(fields: [institutionId], references: [id])
+  creator         User            @relation("RubricCreator", fields: [creatorId], references: [id])
+  parent          Rubric?         @relation("RubricVersions", fields: [parentId], references: [id])
+  versions        Rubric[]        @relation("RubricVersions")
+  criteria        RubricCriteria[]
+  courseRubrics   CourseRubric[]
+  evaluationProcesses EvaluationProcess[]
+
+  @@map("rubrics")
+}
+
+// ============================================================
+// MODELO: Criterio de rúbrica
+// ============================================================
+
+model RubricCriteria {
+  id          String    @id @default(uuid())
+  rubricId    String    @map("rubric_id")
+  name        String
+  description String?
+  weight      Float     @default(1.0)
+  order       Int       @default(0)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  rubric              Rubric                @relation(fields: [rubricId], references: [id], onDelete: Cascade)
+  performanceLevels   PerformanceLevel[]
+  evaluationScores    EvaluationScore[]
+
+  @@map("rubric_criteria")
+}
+
+// ============================================================
+// MODELO: Nivel de desempeño
+// ============================================================
+
+model PerformanceLevel {
+  id          String    @id @default(uuid())
+  criteriaId  String    @map("criteria_id")
+  name        String
+  description String?
+  score       Float
+  order       Int       @default(0)
+
+  criteria    RubricCriteria  @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+
+  @@map("performance_levels")
+}
+
+// ============================================================
+// MODELO: Asociación rúbrica-curso
+// ============================================================
+
+model CourseRubric {
+  id          String    @id @default(uuid())
+  courseId    String    @map("course_id")
+  rubricId    String    @map("rubric_id")
+  assignedAt  DateTime  @default(now()) @map("assigned_at")
+
+  course  Course  @relation(fields: [courseId], references: [id])
+  rubric  Rubric  @relation(fields: [rubricId], references: [id])
+
+  @@unique([courseId, rubricId])
+  @@map("course_rubrics")
+}
+
+// ============================================================
+// MODELO: Proceso de evaluación
+// ============================================================
+
+model EvaluationProcess {
+  id                    String          @id @default(uuid())
+  courseId              String          @map("course_id")
+  rubricId              String          @map("rubric_id")
+  name                  String
+  description           String?
+  status                String          @default("DRAFT")
+  startDate             DateTime?       @map("start_date")
+  endDate               DateTime?       @map("end_date")
+  selfWeight            Float           @default(0.2) @map("self_weight")
+  peerWeight            Float           @default(0.5) @map("peer_weight")
+  teacherWeight         Float           @default(0.3) @map("teacher_weight")
+  includeSelf           Boolean         @default(true) @map("include_self")
+  includePeer           Boolean         @default(true) @map("include_peer")
+  includeTeacher        Boolean         @default(true) @map("include_teacher")
+  allowAnonymousPeer    Boolean         @default(false) @map("allow_anonymous_peer")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  course        Course        @relation(fields: [courseId], references: [id])
+  rubric        Rubric        @relation(fields: [rubricId], references: [id])
+  evaluations   Evaluation[]
+  results       ConsolidatedResult[]
+
+  @@map("evaluation_processes")
+}
+
+// ============================================================
+// MODELO: Evaluación individual
+// ============================================================
+
+model Evaluation {
+  id              String            @id @default(uuid())
+  processId       String            @map("process_id")
+  evaluatorId     String            @map("evaluator_id")
+  evaluatedId     String            @map("evaluated_id")
+  type            String
+  status          String            @default("PENDING")
+  generalComment  String?           @map("general_comment")
+  submittedAt     DateTime?         @map("submitted_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  process     EvaluationProcess   @relation(fields: [processId], references: [id])
+  evaluator   User                @relation("EvaluatorRelation", fields: [evaluatorId], references: [id])
+  evaluated   User                @relation("EvaluatedRelation", fields: [evaluatedId], references: [id])
+  scores      EvaluationScore[]
+
+  @@unique([processId, evaluatorId, evaluatedId, type])
+  @@map("evaluations")
+}
+
+// ============================================================
+// MODELO: Puntaje por criterio en evaluación
+// ============================================================
+
+model EvaluationScore {
+  id          String    @id @default(uuid())
+  evaluationId  String  @map("evaluation_id")
+  criteriaId    String  @map("criteria_id")
+  score         Float
+  comment       String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  evaluation  Evaluation      @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  criteria    RubricCriteria  @relation(fields: [criteriaId], references: [id])
+
+  @@unique([evaluationId, criteriaId])
+  @@map("evaluation_scores")
+}
+
+// ============================================================
+// MODELO: Resultado consolidado
+// ============================================================
+
+model ConsolidatedResult {
+  id              String    @id @default(uuid())
+  processId       String    @map("process_id")
+  studentId       String    @map("student_id")
+  teamId          String?   @map("team_id")
+  selfScore       Float?    @map("self_score")
+  peerScore       Float?    @map("peer_score")
+  teacherScore    Float?    @map("teacher_score")
+  finalScore      Float?    @map("final_score")
+  overvaluationIndex Float? @map("overvaluation_index")
+  calculatedAt    DateTime  @default(now()) @map("calculated_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Scores por criterio (JSON para flexibilidad)
+  criteriaScores  String?   @map("criteria_scores")
+
+  process   EvaluationProcess @relation(fields: [processId], references: [id])
+  team      Team?             @relation(fields: [teamId], references: [id])
+
+  @@unique([processId, studentId])
+  @@map("consolidated_results")
+}
+
+// ============================================================
+// MODELO: Métricas analíticas del equipo
+// ============================================================
+
+model TeamAnalytics {
+  id                  String    @id @default(uuid())
+  processId           String    @map("process_id")
+  teamId              String    @map("team_id")
+  averageScore        Float?    @map("average_score")
+  standardDeviation   Float?    @map("standard_deviation")
+  cohesionIndex       Float?    @map("cohesion_index")
+  minScore            Float?    @map("min_score")
+  maxScore            Float?    @map("max_score")
+  outlierStudentIds   String?   @map("outlier_student_ids")
+  criteriaAverages    String?   @map("criteria_averages")
+  calculatedAt        DateTime  @default(now()) @map("calculated_at")
+
+  @@unique([processId, teamId])
+  @@map("team_analytics")
+}
+
+// ============================================================
+// MODELO: Métricas analíticas del curso
+// ============================================================
+
+model CourseAnalytics {
+  id                  String    @id @default(uuid())
+  processId           String    @unique @map("process_id")
+  courseId            String    @map("course_id")
+  totalStudents       Int       @map("total_students")
+  completionRate      Float     @map("completion_rate")
+  averageScore        Float?    @map("average_score")
+  medianScore         Float?    @map("median_score")
+  standardDeviation   Float?    @map("standard_deviation")
+  variance            Float?
+  percentile25        Float?    @map("percentile_25")
+  percentile75        Float?    @map("percentile_75")
+  percentile90        Float?    @map("percentile_90")
+  weakestCriteria     String?   @map("weakest_criteria")
+  scoreDistribution   String?   @map("score_distribution")
+  criteriaAverages    String?   @map("criteria_averages")
+  calculatedAt        DateTime  @default(now()) @map("calculated_at")
+
+  @@map("course_analytics")
+}
+
+// ============================================================
+// MODELO: Log de auditoría
+// ============================================================
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  userId      String?   @map("user_id")
+  action      String
+  entity      String
+  entityId    String?   @map("entity_id")
+  oldValues   String?   @map("old_values")
+  newValues   String?   @map("new_values")
+  ipAddress   String?   @map("ip_address")
+  userAgent   String?   @map("user_agent")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user  User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
