@@ -5,14 +5,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { evaluationsApi } from '@/services/api'
-import type { EvaluationProcess } from '@/types'
-
-const MOCK: EvaluationProcess[] = [
-  { id: 'p1', name: 'Evaluación Parcial 1 – Proyecto Integrador', description: 'Coevaluación y heteroevaluación del primer corte', status: 'ACTIVE', selfWeight: 0.2, peerWeight: 0.5, teacherWeight: 0.3, courseId: 'c1', rubricId: 'r1', createdAt: new Date().toISOString() },
-  { id: 'p2', name: 'Evaluación Final – Trabajo en Equipo', description: 'Evaluación integral del desempeño en equipo', status: 'DRAFT', selfWeight: 0.2, peerWeight: 0.5, teacherWeight: 0.3, courseId: 'c1', rubricId: 'r1', createdAt: new Date().toISOString() },
-  { id: 'p3', name: 'Evaluación Diagnóstica', description: '', status: 'CLOSED', selfWeight: 0.2, peerWeight: 0.5, teacherWeight: 0.3, courseId: 'c2', rubricId: 'r1', createdAt: new Date().toISOString() },
-]
+import { coursesApi, evaluationsApi, rubricsApi } from '@/services/api'
+import type { Course, EvaluationProcess, Rubric } from '@/types'
 
 const STATUS = {
   DRAFT:    { label: 'Borrador',  variant: 'secondary' as const, pct: 0   },
@@ -24,30 +18,58 @@ const STATUS = {
 export function EvaluationProcessesPage() {
   const navigate = useNavigate()
   const [processes, setProcesses] = useState<EvaluationProcess[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
+  const [rubrics, setRubrics] = useState<Rubric[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ name: '', description: '', selfWeight: 0.2, peerWeight: 0.5, teacherWeight: 0.3, courseId: 'c1', rubricId: 'r1' })
+  const [error, setError] = useState('')
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    selfWeight: 0.2,
+    peerWeight: 0.5,
+    teacherWeight: 0.3,
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    courseId: '',
+    rubricId: '',
+  })
   const [saving, setSaving] = useState(false)
   const [activating, setActivating] = useState<string | null>(null)
 
   useEffect(() => {
-    evaluationsApi.getProcesses()
-      .then(r => setProcesses(r.data.data ?? []))
-      .catch(() => setProcesses(MOCK))
+    Promise.all([evaluationsApi.getProcesses(), coursesApi.getAll(), rubricsApi.getAll()])
+      .then(([processRes, courseRes, rubricRes]) => {
+        const nextProcesses = processRes.data.data ?? []
+        const nextCourses = courseRes.data.data ?? []
+        const nextRubrics = rubricRes.data.data ?? []
+        setProcesses(nextProcesses)
+        setCourses(nextCourses)
+        setRubrics(nextRubrics)
+        setForm((current) => ({
+          ...current,
+          courseId: current.courseId || nextCourses[0]?.id || '',
+          rubricId: current.rubricId || nextRubrics[0]?.id || '',
+        }))
+      })
+      .catch(() => setError('No se pudo cargar la configuración del modulo.'))
       .finally(() => setLoading(false))
   }, [])
 
   const handleCreate = async () => {
+    if (!form.courseId || !form.rubricId) {
+      setError('Falta seleccionar un curso y una rubrica.')
+      return
+    }
     setSaving(true)
+    setError('')
     try {
       const r = await evaluationsApi.createProcess(form)
       setProcesses(prev => [r.data.data, ...prev])
       setShowModal(false)
-    } catch {
-      setProcesses(prev => [{
-        id: Date.now().toString(), ...form, status: 'DRAFT' as const, createdAt: new Date().toISOString()
-      }, ...prev])
-      setShowModal(false)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(msg ?? 'No se pudo crear el proceso.')
     } finally {
       setSaving(false)
     }
@@ -59,7 +81,7 @@ export function EvaluationProcessesPage() {
       await evaluationsApi.activateProcess(id)
       setProcesses(prev => prev.map(p => p.id === id ? { ...p, status: 'ACTIVE' as const } : p))
     } catch {
-      setProcesses(prev => prev.map(p => p.id === id ? { ...p, status: 'ACTIVE' as const } : p))
+      setError('No se pudo activar el proceso.')
     } finally {
       setActivating(null)
     }
@@ -70,7 +92,7 @@ export function EvaluationProcessesPage() {
       await evaluationsApi.closeProcess(id)
       setProcesses(prev => prev.map(p => p.id === id ? { ...p, status: 'CLOSED' as const } : p))
     } catch {
-      setProcesses(prev => prev.map(p => p.id === id ? { ...p, status: 'CLOSED' as const } : p))
+      setError('No se pudo cerrar el proceso.')
     }
   }
 
@@ -83,6 +105,12 @@ export function EvaluationProcessesPage() {
         </div>
         <Button onClick={() => setShowModal(true)} className="gap-2"><Plus className="w-4 h-4" /> Nuevo Proceso</Button>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
@@ -146,6 +174,13 @@ export function EvaluationProcessesPage() {
               </Card>
             )
           })}
+          {processes.length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center text-sm text-gray-500">
+                No hay procesos creados todavia.
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -159,11 +194,63 @@ export function EvaluationProcessesPage() {
                 <input className="w-full h-10 rounded-lg border border-input px-3 text-sm" placeholder="Ej: Evaluación Parcial 1"
                   value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Curso *</label>
+                  <select
+                    className="w-full h-10 rounded-lg border border-input px-3 text-sm bg-white"
+                    value={form.courseId}
+                    onChange={(e) => setForm((f) => ({ ...f, courseId: e.target.value }))}
+                  >
+                    <option value="">Selecciona un curso</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.name} ({course.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Rubrica *</label>
+                  <select
+                    className="w-full h-10 rounded-lg border border-input px-3 text-sm bg-white"
+                    value={form.rubricId}
+                    onChange={(e) => setForm((f) => ({ ...f, rubricId: e.target.value }))}
+                  >
+                    <option value="">Selecciona una rubrica</option>
+                    {rubrics.map((rubric) => (
+                      <option key={rubric.id} value={rubric.id}>
+                        {rubric.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">Descripción</label>
                 <textarea className="w-full rounded-lg border border-input px-3 py-2 text-sm resize-none" rows={2}
                   placeholder="Descripción opcional..."
                   value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Fecha de inicio *</label>
+                  <input
+                    type="date"
+                    className="w-full h-10 rounded-lg border border-input px-3 text-sm"
+                    value={form.startDate}
+                    onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1 block">Fecha de cierre *</label>
+                  <input
+                    type="date"
+                    className="w-full h-10 rounded-lg border border-input px-3 text-sm"
+                    value={form.endDate}
+                    onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-2 block">Ponderación de evaluaciones</label>

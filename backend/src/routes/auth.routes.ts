@@ -22,8 +22,8 @@ const router = Router();
 
 // Rate limit específico para autenticación
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 10,
+  windowMs: process.env.NODE_ENV === 'development' ? 60 * 1000 : 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'development' ? 1000 : 10,
   message: { error: 'Demasiados intentos de autenticación. Espere 15 minutos.' }
 });
 

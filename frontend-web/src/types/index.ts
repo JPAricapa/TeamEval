@@ -8,6 +8,7 @@ export interface User {
   lastName: string
   role: Role
   institutionId?: string
+  institution?: Institution
   isActive: boolean
   createdAt: string
 }
@@ -33,10 +34,20 @@ export interface Institution {
 export interface AcademicPeriod {
   id: string
   name: string
+  code?: string
   startDate: string
   endDate: string
   isActive: boolean
   institutionId: string
+}
+
+export interface Program {
+  id: string
+  name: string
+  code: string
+  department?: string
+  institutionId: string
+  isActive?: boolean
 }
 
 export interface Course {

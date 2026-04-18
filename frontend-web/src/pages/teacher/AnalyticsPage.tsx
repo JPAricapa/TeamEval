@@ -9,7 +9,7 @@ import type { CourseAnalytics } from '@/types'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  LineChart, Line, Legend
+  Legend
 } from 'recharts'
 
 const MOCK_ANALYTICS: CourseAnalytics = {

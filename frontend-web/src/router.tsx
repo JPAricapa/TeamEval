@@ -18,6 +18,7 @@ import { InstitutionsPage } from '@/pages/admin/InstitutionsPage'
 // Teacher
 import { TeacherDashboard } from '@/pages/teacher/TeacherDashboard'
 import { CoursesPage } from '@/pages/teacher/CoursesPage'
+import { CourseDetailPage } from '@/pages/teacher/CourseDetailPage'
 import { RubricsPage } from '@/pages/teacher/RubricsPage'
 import { EvaluationProcessesPage } from '@/pages/teacher/EvaluationProcessesPage'
 import { ProcessDetailPage } from '@/pages/teacher/ProcessDetailPage'
@@ -105,6 +106,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <TeacherDashboard /> },
       { path: 'courses', element: <CoursesPage /> },
+      { path: 'courses/:courseId', element: <CourseDetailPage /> },
       { path: 'rubrics', element: <RubricsPage /> },
       { path: 'evaluations', element: <EvaluationProcessesPage /> },
       { path: 'evaluations/:processId', element: <ProcessDetailPage /> },

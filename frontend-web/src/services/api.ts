@@ -104,6 +104,14 @@ export const institutionsApi = {
   delete: (id: string) => api.delete(`/institutions/${id}`),
 }
 
+export const programsApi = {
+  getAll: () => api.get('/programs'),
+}
+
+export const periodsApi = {
+  getAll: () => api.get('/periods'),
+}
+
 // ── Courses ───────────────────────────────────────────────────────────────────
 export const coursesApi = {
   getAll: () => api.get('/courses'),

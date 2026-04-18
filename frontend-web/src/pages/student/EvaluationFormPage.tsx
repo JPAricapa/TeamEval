@@ -4,7 +4,7 @@ import { ArrowLeft, Send, Loader2, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { evaluationsApi, rubricsApi } from '@/services/api'
+import { evaluationsApi } from '@/services/api'
 import type { Rubric } from '@/types'
 
 const MOCK_RUBRIC: Rubric = {
@@ -63,6 +63,7 @@ export function EvaluationFormPage() {
   const { evalId } = useParams()
   const navigate = useNavigate()
   const [rubric, setRubric] = useState<Rubric>(MOCK_RUBRIC)
+  const [loadError, setLoadError] = useState('')
   const [scores, setScores] = useState<Record<string, number>>({})
   const [comments, setComments] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -78,10 +79,39 @@ export function EvaluationFormPage() {
           type: ev.type,
           evaluateeName: ev.evaluatee ? `${ev.evaluatee.firstName} ${ev.evaluatee.lastName}` : 'Autoevaluación',
         })
-        return rubricsApi.getById(ev.rubricId ?? 'r1')
+        const realRubric = ev.process?.rubric
+        if (!realRubric) return
+        setRubric({
+          id: realRubric.id,
+          name: realRubric.name,
+          description: realRubric.description ?? '',
+          version: realRubric.version,
+          isActive: true,
+          isTemplate: false,
+          createdAt: realRubric.createdAt ?? '',
+          criteria: (realRubric.criteria ?? []).map((criterion: {
+            id: string
+            name: string
+            description?: string
+            weight: number
+            performanceLevels?: Array<{ id: string; name: string; score: number; description: string }>
+          }) => ({
+            id: criterion.id,
+            name: criterion.name,
+            description: criterion.description ?? '',
+            weight: criterion.weight,
+            maxScore: 5,
+            rubricId: realRubric.id,
+            levels: (criterion.performanceLevels ?? []).map((level) => ({
+              id: level.id,
+              name: level.name,
+              score: level.score,
+              description: level.description,
+            })),
+          })),
+        })
       })
-      .then(r => setRubric(r.data.data ?? MOCK_RUBRIC))
-      .catch(() => {})
+      .catch(() => setLoadError('No se pudo cargar la evaluación real.'))
   }, [evalId])
 
   const answered = Object.keys(scores).length
@@ -136,6 +166,12 @@ export function EvaluationFormPage() {
       </div>
 
       {/* Progress bar */}
+      {loadError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {loadError}
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex justify-between text-sm mb-2">
           <span className="text-gray-600 font-medium">Progreso</span>

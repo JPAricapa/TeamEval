@@ -7,13 +7,6 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { consolidationApi, exportApi } from '@/services/api'
 
-const MOCK_RESULTS = [
-  { id: 'r1', studentId: 's1', student: { firstName: 'Ana', lastName: 'García' }, teamId: 't1', teamName: 'Equipo Alpha', finalScore: 4.2, selfScore: 4.0, peerScore: 4.3, teacherScore: 4.1, isOutlier: false, overvaluationIndex: 0.05 },
-  { id: 'r2', studentId: 's2', student: { firstName: 'Luis', lastName: 'Martínez' }, teamId: 't1', teamName: 'Equipo Alpha', finalScore: 3.8, selfScore: 4.5, peerScore: 3.6, teacherScore: 3.7, isOutlier: false, overvaluationIndex: 0.22 },
-  { id: 'r3', studentId: 's3', student: { firstName: 'María', lastName: 'López' }, teamId: 't2', teamName: 'Equipo Beta', finalScore: 4.5, selfScore: 4.4, peerScore: 4.6, teacherScore: 4.4, isOutlier: false, overvaluationIndex: -0.02 },
-  { id: 'r4', studentId: 's4', student: { firstName: 'Carlos', lastName: 'Pérez' }, teamId: 't2', teamName: 'Equipo Beta', finalScore: 2.9, selfScore: 4.8, peerScore: 2.5, teacherScore: 2.8, isOutlier: true, overvaluationIndex: 0.65 },
-]
-
 function scoreColor(s: number) {
   if (s >= 4.5) return 'text-emerald-600 bg-emerald-50'
   if (s >= 3.5) return 'text-blue-600 bg-blue-50'
@@ -24,15 +17,16 @@ function scoreColor(s: number) {
 export function ProcessDetailPage() {
   const { processId } = useParams()
   const navigate = useNavigate()
-  const [results, setResults] = useState(MOCK_RESULTS)
+  const [results, setResults] = useState<Array<Record<string, unknown>>>([])
   const [consolidating, setConsolidating] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     if (!processId) return
     consolidationApi.getResults(processId)
-      .then(r => setResults(r.data.data ?? MOCK_RESULTS))
-      .catch(() => setResults(MOCK_RESULTS))
+      .then(r => setResults(r.data.data ?? []))
+      .catch(() => setError('Todavia no hay resultados consolidados para este proceso.'))
       .finally(() => setLoading(false))
   }, [processId])
 
@@ -42,9 +36,10 @@ export function ProcessDetailPage() {
     try {
       await consolidationApi.consolidate(processId)
       const r = await consolidationApi.getResults(processId)
-      setResults(r.data.data ?? MOCK_RESULTS)
+      setResults(r.data.data ?? [])
+      setError('')
     } catch {
-      alert('Consolidación completada (datos de ejemplo).')
+      setError('No se pudo consolidar el proceso.')
     } finally {
       setConsolidating(false)
     }
@@ -81,6 +76,12 @@ export function ProcessDetailPage() {
           </Button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {error}
+        </div>
+      )}
 
       {/* Progress summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -119,33 +120,38 @@ export function ProcessDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {results.map(r => (
-                    <tr key={r.id} className="hover:bg-gray-50/50">
+                  {results.map((r) => (
+                    <tr key={String(r.id)} className="hover:bg-gray-50/50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                            {r.student.firstName[0]}{r.student.lastName[0]}
+                            {String((r.student as { name?: string } | undefined)?.name ?? 'N').slice(0, 1)}
                           </div>
-                          <span className="font-medium text-gray-900">{r.student.firstName} {r.student.lastName}</span>
+                          <span className="font-medium text-gray-900">{(r.student as { name?: string } | undefined)?.name ?? 'Sin nombre'}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{r.teamName}</td>
-                      <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-1 rounded-lg ${scoreColor(r.selfScore)}`}>{r.selfScore.toFixed(2)}</span></td>
-                      <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-1 rounded-lg ${scoreColor(r.peerScore)}`}>{r.peerScore.toFixed(2)}</span></td>
-                      <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-1 rounded-lg ${scoreColor(r.teacherScore)}`}>{r.teacherScore.toFixed(2)}</span></td>
-                      <td className="px-4 py-3"><span className={`text-sm font-bold px-2.5 py-1 rounded-lg ${scoreColor(r.finalScore)}`}>{r.finalScore.toFixed(2)}</span></td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{(r.team as { name?: string } | undefined)?.name ?? 'Sin equipo'}</td>
+                      <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-1 rounded-lg ${scoreColor(Number(r.selfScore ?? 0))}`}>{Number(r.selfScore ?? 0).toFixed(2)}</span></td>
+                      <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-1 rounded-lg ${scoreColor(Number(r.peerScore ?? 0))}`}>{Number(r.peerScore ?? 0).toFixed(2)}</span></td>
+                      <td className="px-4 py-3"><span className={`text-xs font-semibold px-2 py-1 rounded-lg ${scoreColor(Number(r.teacherScore ?? 0))}`}>{Number(r.teacherScore ?? 0).toFixed(2)}</span></td>
+                      <td className="px-4 py-3"><span className={`text-sm font-bold px-2.5 py-1 rounded-lg ${scoreColor(Number(r.finalScore ?? 0))}`}>{Number(r.finalScore ?? 0).toFixed(2)}</span></td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs font-medium ${r.overvaluationIndex > 0.3 ? 'text-red-500' : 'text-gray-400'}`}>
-                          {r.overvaluationIndex > 0 ? '+' : ''}{(r.overvaluationIndex * 100).toFixed(0)}%
+                        <span className={`text-xs font-medium ${Number(r.overvaluationIndex ?? 0) > 0.3 ? 'text-red-500' : 'text-gray-400'}`}>
+                          {Number(r.overvaluationIndex ?? 0) > 0 ? '+' : ''}{(Number(r.overvaluationIndex ?? 0) * 100).toFixed(0)}%
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {r.isOutlier
-                          ? <Badge variant="destructive">Outlier</Badge>
-                          : <Badge variant="success">Normal</Badge>}
+                        <Badge variant="success">Registrado</Badge>
                       </td>
                     </tr>
                   ))}
+                  {results.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-500">
+                        Aun no hay resultados consolidados para mostrar.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
