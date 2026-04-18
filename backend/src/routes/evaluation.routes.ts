@@ -45,17 +45,30 @@ router.get('/processes', allRoles,
 router.get('/processes/:id', [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const isStudent = req.user!.role === UserRole.STUDENT;
+
+      // A los estudiantes solo les devolvemos sus propias evaluaciones como evaluador.
+      // Esto garantiza el anonimato entre pares y que no vean los resultados recibidos.
+      const evaluationsInclude = isStudent
+        ? {
+            where: { evaluatorId: req.user!.id },
+            include: {
+              evaluated: { select: { firstName: true, lastName: true } }
+            }
+          }
+        : {
+            include: {
+              evaluator: { select: { firstName: true, lastName: true } },
+              evaluated: { select: { firstName: true, lastName: true } }
+            }
+          };
+
       const process = await prisma.evaluationProcess.findUnique({
         where: { id: req.params.id },
         include: {
           course: { include: { groups: { include: { teams: { include: { members: { include: { user: true } } } } } } } },
           rubric: { include: { criteria: { include: { performanceLevels: true } } } },
-          evaluations: {
-            include: {
-              evaluator: { select: { firstName: true, lastName: true } },
-              evaluated: { select: { firstName: true, lastName: true } }
-            }
-          }
+          evaluations: evaluationsInclude
         }
       });
       if (!process) return sendNotFound(res);

@@ -97,24 +97,26 @@ async function main() {
     }
   });
 
-  // Estudiantes de ejemplo
-  const studentEmails = [
-    { email: 'est1@teameval.edu.co', firstName: 'Ana', lastName: 'García' },
-    { email: 'est2@teameval.edu.co', firstName: 'Carlos', lastName: 'López' },
-    { email: 'est3@teameval.edu.co', firstName: 'María', lastName: 'Martínez' },
-    { email: 'est4@teameval.edu.co', firstName: 'Juan', lastName: 'Rodríguez' },
-    { email: 'est5@teameval.edu.co', firstName: 'Laura', lastName: 'Hernández' },
-    { email: 'est6@teameval.edu.co', firstName: 'Pedro', lastName: 'González' }
+  // Estudiantes de ejemplo. La contraseña de cada estudiante es su cédula (nationalId).
+  const studentSeeds = [
+    { email: 'est1@teameval.edu.co', nationalId: '1000000001', firstName: 'Ana', lastName: 'García' },
+    { email: 'est2@teameval.edu.co', nationalId: '1000000002', firstName: 'Carlos', lastName: 'López' },
+    { email: 'est3@teameval.edu.co', nationalId: '1000000003', firstName: 'María', lastName: 'Martínez' },
+    { email: 'est4@teameval.edu.co', nationalId: '1000000004', firstName: 'Juan', lastName: 'Rodríguez' },
+    { email: 'est5@teameval.edu.co', nationalId: '1000000005', firstName: 'Laura', lastName: 'Hernández' },
+    { email: 'est6@teameval.edu.co', nationalId: '1000000006', firstName: 'Pedro', lastName: 'González' }
   ];
 
   const students = [];
-  for (const s of studentEmails) {
+  for (const s of studentSeeds) {
+    const studentPasswordHash = await bcrypt.hash(s.nationalId, 12);
     const student = await prisma.user.upsert({
       where: { email: s.email },
-      update: {},
+      update: { nationalId: s.nationalId, passwordHash: studentPasswordHash },
       create: {
         email: s.email,
-        passwordHash,
+        nationalId: s.nationalId,
+        passwordHash: studentPasswordHash,
         firstName: s.firstName,
         lastName: s.lastName,
         role: UserRole.STUDENT,
@@ -498,10 +500,14 @@ async function main() {
 
   console.log('\n🎉 Seed completado exitosamente!');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('Credenciales de prueba (contraseña: TeamEval2024!):');
+  console.log('Credenciales admin/docente (contraseña: TeamEval2024!):');
   console.log('  Admin:   admin@teameval.edu.co');
   console.log('  Docente: docente@teameval.edu.co');
-  console.log('  Est 1:   est1@teameval.edu.co  (hasta est6)');
+  console.log('');
+  console.log('Credenciales estudiantes (contraseña = cédula):');
+  console.log('  est1@teameval.edu.co → 1000000001');
+  console.log('  est2@teameval.edu.co → 1000000002');
+  console.log('  ... hasta est6 → 1000000006');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 

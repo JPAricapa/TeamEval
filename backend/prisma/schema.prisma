@@ -20,6 +20,7 @@ datasource db {
 model User {
   id              String    @id @default(uuid())
   email           String    @unique
+  nationalId      String?   @unique @map("national_id")
   passwordHash    String    @map("password_hash")
   firstName       String    @map("first_name")
   lastName        String    @map("last_name")
@@ -367,7 +368,7 @@ model EvaluationProcess {
   includeSelf           Boolean         @default(true) @map("include_self")
   includePeer           Boolean         @default(true) @map("include_peer")
   includeTeacher        Boolean         @default(true) @map("include_teacher")
-  allowAnonymousPeer    Boolean         @default(false) @map("allow_anonymous_peer")
+  allowAnonymousPeer    Boolean         @default(true) @map("allow_anonymous_peer")
   createdAt             DateTime        @default(now()) @map("created_at")
   updatedAt             DateTime        @updatedAt @map("updated_at")
 
