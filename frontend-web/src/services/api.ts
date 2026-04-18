@@ -94,6 +94,11 @@ export const usersApi = {
   getById: (id: string) => api.get(`/users/${id}`),
   create: (data: object) => api.post('/users', data),
   update: (id: string, data: object) => api.patch(`/users/${id}`, data),
+  bulkImportStudents: (data: {
+    courseId: string
+    groupName: string
+    students: Array<{ firstName: string; lastName: string; email: string; nationalId: string }>
+  }) => api.post('/users/bulk-import-students', data),
 }
 
 // ── Institutions ──────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { param, body } from 'express-validator';
-import { authenticate, teacherOrAdmin, allRoles } from '../middleware/auth.middleware';
+import { authenticate, teacherOrAdmin } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { sendSuccess } from '../utils/response';
 import { consolidationService } from '../services/consolidation.service';
@@ -38,7 +38,8 @@ router.post('/process/:processId/student/:studentId', teacherOrAdmin,
 );
 
 // GET /consolidation/process/:processId/results - Obtener resultados
-router.get('/process/:processId/results', allRoles,
+// Solo docente/admin: los estudiantes no deben ver los puntajes consolidados.
+router.get('/process/:processId/results', teacherOrAdmin,
   [param('processId').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {

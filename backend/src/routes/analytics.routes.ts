@@ -5,7 +5,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { param, query } from 'express-validator';
-import { authenticate, teacherOrAdmin, allRoles } from '../middleware/auth.middleware';
+import { authenticate, teacherOrAdmin } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { sendSuccess } from '../utils/response';
 import { analyticsService } from '../services/analytics.service';
@@ -14,7 +14,9 @@ const router = Router();
 router.use(authenticate);
 
 // GET /analytics/individual/:processId/:studentId
-router.get('/individual/:processId/:studentId',
+// Solo docente/admin: los estudiantes no pueden consultar su analítica individual
+// (incluye resultados recibidos de sus pares, que son confidenciales).
+router.get('/individual/:processId/:studentId', teacherOrAdmin,
   [param('processId').isUUID(), param('studentId').isUUID()],
   validate,
   async (req: Request, res: Response, next: NextFunction) => {

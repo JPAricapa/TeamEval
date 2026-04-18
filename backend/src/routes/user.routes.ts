@@ -168,6 +168,119 @@ router.post(
   }
 );
 
+// POST /users/bulk-import-students - Carga masiva de estudiantes a un curso
+// El docente del curso (o admin) sube una lista. Cada estudiante nuevo se crea con
+// passwordHash = hash(nationalId), queda activo y se agrega al grupo indicado.
+router.post(
+  '/bulk-import-students',
+  teacherOrAdmin,
+  [
+    body('courseId').isUUID().withMessage('courseId inválido'),
+    body('groupName').trim().notEmpty().withMessage('groupName requerido'),
+    body('students').isArray({ min: 1 }).withMessage('Lista de estudiantes requerida'),
+    body('students.*.firstName').trim().notEmpty(),
+    body('students.*.lastName').trim().notEmpty(),
+    body('students.*.email').isEmail().normalizeEmail(),
+    body('students.*.nationalId').trim().notEmpty().withMessage('La cédula es requerida')
+  ],
+  validate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { courseId, groupName, students } = req.body as {
+        courseId: string;
+        groupName: string;
+        students: Array<{ firstName: string; lastName: string; email: string; nationalId: string }>;
+      };
+
+      // Verificar que el curso existe y que el docente es dueño (admin ignora).
+      const course = await prisma.course.findUnique({ where: { id: courseId } });
+      if (!course) throw new AppError('Curso no encontrado', 404);
+      if (req.user!.role === UserRole.TEACHER && course.teacherId !== req.user!.id) {
+        throw new AppError('No eres el docente de este curso', 403);
+      }
+
+      // Obtener o crear el grupo por (courseId, name)
+      let group = await prisma.group.findFirst({
+        where: { courseId, name: groupName }
+      });
+      if (!group) {
+        group = await prisma.group.create({
+          data: { courseId, name: groupName }
+        });
+      }
+
+      const created: Array<{ email: string; nationalId: string }> = [];
+      const existing: Array<{ email: string }> = [];
+      const errors: Array<{ row: number; email: string; reason: string }> = [];
+
+      for (let i = 0; i < students.length; i++) {
+        const s = students[i];
+        try {
+          // ¿Ya existe un usuario con ese email?
+          let user = await prisma.user.findUnique({ where: { email: s.email } });
+
+          if (!user) {
+            // Validar que la cédula no esté tomada por otro usuario
+            const byNationalId = await prisma.user.findUnique({
+              where: { nationalId: s.nationalId }
+            });
+            if (byNationalId) {
+              errors.push({
+                row: i + 1,
+                email: s.email,
+                reason: 'La cédula ya está registrada a otro correo'
+              });
+              continue;
+            }
+
+            const passwordHash = await bcrypt.hash(s.nationalId, 12);
+            user = await prisma.user.create({
+              data: {
+                email: s.email,
+                nationalId: s.nationalId,
+                passwordHash,
+                firstName: s.firstName,
+                lastName: s.lastName,
+                role: UserRole.STUDENT,
+                institutionId: course.institutionId,
+                isActive: true
+              }
+            });
+            created.push({ email: s.email, nationalId: s.nationalId });
+          } else {
+            existing.push({ email: s.email });
+          }
+
+          // Asegurar membership en el grupo (upsert por la unique groupId_userId)
+          await prisma.groupMember.upsert({
+            where: { groupId_userId: { groupId: group.id, userId: user.id } },
+            update: { isActive: true },
+            create: { groupId: group.id, userId: user.id }
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Error desconocido';
+          errors.push({ row: i + 1, email: s.email, reason: message });
+        }
+      }
+
+      sendSuccess(
+        res,
+        {
+          summary: {
+            total: students.length,
+            created: created.length,
+            existing: existing.length,
+            errors: errors.length
+          },
+          group: { id: group.id, name: group.name },
+          details: { created, existing, errors }
+        },
+        `Importación completada: ${created.length} creados, ${existing.length} ya existían, ${errors.length} errores`
+      );
+    } catch (error) { next(error); }
+  }
+);
+
 // PATCH /users/:id - Actualizar usuario
 router.patch(
   '/:id',

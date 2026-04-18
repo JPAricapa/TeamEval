@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { coursesApi } from '@/services/api'
+import { BulkImportStudents } from './BulkImportStudents'
 
 type CourseDetail = {
   id: string
@@ -37,12 +38,18 @@ export function CourseDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  const loadCourse = () => {
     if (!courseId) return
+    setLoading(true)
     coursesApi.getById(courseId)
       .then((r) => setCourse(r.data.data ?? null))
       .catch(() => setError('No se pudo cargar el detalle del curso.'))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadCourse()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId])
 
   if (loading) {
@@ -103,6 +110,8 @@ export function CourseDetailPage() {
           <div><p className="text-xs text-gray-500">Procesos</p><p className="text-xl font-bold text-gray-900">{course.evaluationProcesses?.length ?? 0}</p></div>
         </CardContent></Card>
       </div>
+
+      <BulkImportStudents courseId={course.id} onImported={loadCourse} />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-1">
