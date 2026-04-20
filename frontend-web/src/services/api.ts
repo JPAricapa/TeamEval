@@ -123,6 +123,9 @@ export const coursesApi = {
   getById: (id: string) => api.get(`/courses/${id}`),
   create: (data: object) => api.post('/courses', data),
   update: (id: string, data: object) => api.patch(`/courses/${id}`, data),
+  assignRubric: (courseId: string, rubricId: string, evaluationType: 'SELF' | 'PEER' | 'TEACHER') =>
+    api.post(`/courses/${courseId}/rubrics`, { rubricId, evaluationType }),
+  delete: (id: string) => api.delete(`/courses/${id}`),
 }
 
 // ── Groups ────────────────────────────────────────────────────────────────────
@@ -131,6 +134,13 @@ export const groupsApi = {
   create: (data: object) => api.post('/groups', data),
   addMember: (groupId: string, userId: string) =>
     api.post(`/groups/${groupId}/members`, { userId }),
+  createStudent: (groupId: string, data: {
+    email: string
+    firstName: string
+    lastName: string
+    nationalId: string
+  }) => api.post(`/groups/${groupId}/students`, data),
+  delete: (groupId: string) => api.delete(`/groups/${groupId}`),
   removeMember: (groupId: string, userId: string) =>
     api.delete(`/groups/${groupId}/members/${userId}`),
 }
@@ -160,6 +170,7 @@ export const evaluationsApi = {
   activateProcess: (id: string) =>
     api.post(`/evaluations/processes/${id}/activate`),
   closeProcess: (id: string) => api.patch(`/evaluations/processes/${id}/close`),
+  deleteProcess: (id: string) => api.delete(`/evaluations/processes/${id}`),
   getMyPending: () => api.get('/evaluations/my-pending'),
   getById: (id: string) => api.get(`/evaluations/${id}`),
   submit: (id: string, data: object) => api.post(`/evaluations/${id}/submit`, data),
@@ -171,6 +182,8 @@ export const consolidationApi = {
     api.post(`/consolidation/process/${processId}`),
   getResults: (processId: string) =>
     api.get(`/consolidation/process/${processId}/results`),
+  getMyResults: () =>
+    api.get('/consolidation/my-results'),
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────

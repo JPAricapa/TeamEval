@@ -1,57 +1,131 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, TrendingUp, Users, Activity, Target } from 'lucide-react'
+import { ArrowLeft, Download, TrendingUp, Users, Activity, Target, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { StatCard } from '@/components/ui/stat-card'
-import { analyticsApi, exportApi } from '@/services/api'
+import { analyticsApi, consolidationApi, exportApi } from '@/services/api'
 import type { CourseAnalytics } from '@/types'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  Legend
 } from 'recharts'
 
-const MOCK_ANALYTICS: CourseAnalytics = {
-  processId: 'p1',
-  stats: { mean: 3.87, median: 3.9, variance: 0.42, stdDev: 0.65, min: 2.9, max: 4.8, p25: 3.5, p75: 4.3, p90: 4.6, count: 12 },
-  teamCount: 2,
-  studentCount: 12,
-  completionRate: 0.92,
-  histogram: [
-    { range: '1.0-2.0', count: 0 }, { range: '2.0-3.0', count: 1 },
-    { range: '3.0-3.5', count: 3 }, { range: '3.5-4.0', count: 4 },
-    { range: '4.0-4.5', count: 3 }, { range: '4.5-5.0', count: 1 },
-  ],
-  criteriaStats: [
-    { criteriaName: 'Comunicación', mean: 3.8, stdDev: 0.6 },
-    { criteriaName: 'Colaboración', mean: 4.1, stdDev: 0.5 },
-    { criteriaName: 'Cumplimiento', mean: 3.9, stdDev: 0.7 },
-    { criteriaName: 'Participación', mean: 3.7, stdDev: 0.8 },
-    { criteriaName: 'Liderazgo', mean: 3.5, stdDev: 0.9 },
-    { criteriaName: 'Planificación', mean: 4.0, stdDev: 0.55 },
-  ],
+const TABS = ['General', 'Criterios']
+
+type BackendCourseAnalytics = {
+  processId: string
+  totalStudents?: number
+  completionRate?: number
+  mean?: number
+  median?: number
+  variance?: number
+  standardDeviation?: number
+  percentile25?: number
+  percentile75?: number
+  percentile90?: number
+  scoreDistribution?: Record<string, number>
+  criteriaAverages?: Record<string, { name?: string; average?: number; weight?: number }>
 }
 
-const TEAM_DATA = [
-  { equipo: 'Alpha', promedio: 4.0, min: 3.6, max: 4.3, cohesion: 0.87 },
-  { equipo: 'Beta',  promedio: 3.7, min: 2.9, max: 4.5, cohesion: 0.78 },
-]
+function isFrontendAnalytics(raw: BackendCourseAnalytics | CourseAnalytics): raw is CourseAnalytics {
+  return 'stats' in raw
+}
 
-const TABS = ['General', 'Criterios', 'Equipos']
+function normalizeAnalytics(raw: BackendCourseAnalytics | CourseAnalytics | null): CourseAnalytics | null {
+  if (!raw) return null
+
+  if (isFrontendAnalytics(raw) && raw.stats) {
+    return {
+      ...raw,
+      histogram: raw.histogram ?? [],
+      criteriaStats: raw.criteriaStats ?? [],
+      teamCount: raw.teamCount ?? 0,
+      studentCount: raw.studentCount ?? 0,
+      completionRate: raw.completionRate ?? 0,
+    }
+  }
+
+  const backendRaw: BackendCourseAnalytics = raw
+
+  const histogram = Object.entries(backendRaw.scoreDistribution ?? {}).map(([range, count]) => ({
+    range,
+    count: Number(count ?? 0),
+  }))
+
+  const criteriaStats = Object.values(backendRaw.criteriaAverages ?? {}).map((criterion) => ({
+    criteriaName: criterion.name ?? 'Sin criterio',
+    mean: Number(criterion.average ?? 0),
+    stdDev: 0,
+  }))
+
+  return {
+    processId: backendRaw.processId,
+    teamCount: 0,
+    studentCount: backendRaw.totalStudents ?? 0,
+    completionRate: backendRaw.completionRate ?? 0,
+    histogram,
+    criteriaStats,
+    stats: {
+      mean: backendRaw.mean ?? 0,
+      median: backendRaw.median ?? 0,
+      variance: backendRaw.variance ?? 0,
+      stdDev: backendRaw.standardDeviation ?? 0,
+      min: histogram.length > 0 ? 0 : 0,
+      max: 5,
+      p25: backendRaw.percentile25 ?? 0,
+      p75: backendRaw.percentile75 ?? 0,
+      p90: backendRaw.percentile90 ?? 0,
+      count: backendRaw.totalStudents ?? 0,
+    },
+  }
+}
 
 export function AnalyticsPage() {
   const { processId } = useParams()
   const navigate = useNavigate()
-  const [analytics, setAnalytics] = useState<CourseAnalytics>(MOCK_ANALYTICS)
+  const [analytics, setAnalytics] = useState<CourseAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [tab, setTab] = useState(0)
 
   useEffect(() => {
     if (!processId) return
-    analyticsApi.getCourse(processId)
-      .then(r => setAnalytics(r.data.data ?? MOCK_ANALYTICS))
-      .catch(() => setAnalytics(MOCK_ANALYTICS))
+    setLoading(true)
+    setError('')
+    Promise.resolve()
+      .then(() => consolidationApi.consolidate(processId).catch(() => null))
+      .then(() => analyticsApi.getCourse(processId))
+      .then(r => setAnalytics(normalizeAnalytics(r.data.data ?? null)))
+      .catch((err: unknown) => {
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        setError(msg ?? 'No se pudo cargar la analítica.')
+        setAnalytics(null)
+      })
+      .finally(() => setLoading(false))
   }, [processId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] text-gray-500">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        Cargando analítica...
+      </div>
+    )
+  }
+
+  if (error || !analytics) {
+    return (
+      <div className="space-y-4 max-w-2xl mx-auto">
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/teacher/evaluations/${processId}`)} className="gap-2">
+          <ArrowLeft className="w-4 h-4" />Volver
+        </Button>
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error || 'Aún no hay datos de analítica disponibles para este proceso.'}
+        </div>
+      </div>
+    )
+  }
 
   const { stats, criteriaStats, histogram } = analytics
   const radarData = criteriaStats.map(c => ({ subject: c.criteriaName.split(' ')[0], value: c.mean, fullMark: 5 }))
@@ -65,7 +139,10 @@ export function AnalyticsPage() {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">Analítica del Proceso</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Evaluación Parcial 1 – Proyecto Integrador</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {analytics.studentCount} estudiantes
+            {analytics.teamCount > 0 ? ` · ${analytics.teamCount} equipos` : ''}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5"
@@ -119,6 +196,9 @@ export function AnalyticsPage() {
                   <Bar dataKey="count" name="Estudiantes" fill="#1565C0" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
+              {histogram.length === 0 && (
+                <p className="text-sm text-gray-500 text-center mt-3">Aún no hay puntajes consolidados para graficar.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -169,6 +249,9 @@ export function AnalyticsPage() {
                   <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} formatter={(v: number) => [v.toFixed(2), 'Promedio']} />
                 </RadarChart>
               </ResponsiveContainer>
+              {radarData.length === 0 && (
+                <p className="text-sm text-gray-500 text-center mt-3">No hay datos por criterio disponibles.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -196,59 +279,15 @@ export function AnalyticsPage() {
                     </div>
                   </div>
                 ))}
+                {criteriaStats.length === 0 && (
+                  <p className="text-sm text-gray-500">No hay criterios consolidados todavía.</p>
+                )}
               </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Tab: Equipos */}
-      {tab === 2 && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Comparativa por Equipos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={TEAM_DATA} barSize={32}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="equipo" tick={{ fontSize: 12 }} />
-                  <YAxis domain={[0, 5]} tick={{ fontSize: 12 }} tickCount={6} />
-                  <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="promedio" name="Promedio" fill="#1565C0" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="min" name="Mínimo" fill="#90CAF9" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="max" name="Máximo" fill="#42A5F5" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {TEAM_DATA.map(team => (
-              <Card key={team.equipo}>
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900">Equipo {team.equipo}</h3>
-                    <span className={`text-lg font-bold ${team.cohesion >= 0.85 ? 'text-emerald-600' : team.cohesion >= 0.70 ? 'text-amber-600' : 'text-red-500'}`}>
-                      {team.promedio.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-gray-500">Índice de cohesión</span><span className="font-medium">{(team.cohesion * 100).toFixed(0)}%</span></div>
-                    <div className="flex justify-between"><span className="text-gray-500">Rango</span><span className="font-medium">{team.min.toFixed(1)} – {team.max.toFixed(1)}</span></div>
-                  </div>
-                  <div className="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: `${team.cohesion * 100}%` }} />
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">Cohesión del equipo</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,64 +1,71 @@
 import { useEffect, useState } from 'react'
-import { Users, Building2, BookOpen, ClipboardList, TrendingUp, Activity } from 'lucide-react'
+import { Users, BookOpen, ClipboardList, Activity, Loader2, MoreHorizontal } from 'lucide-react'
 import { StatCard } from '@/components/ui/stat-card'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { usersApi, institutionsApi, coursesApi } from '@/services/api'
-import type { User, Institution } from '@/types'
+import { usersApi, coursesApi } from '@/services/api'
+import type { User } from '@/types'
 import { getRoleColor, getRoleName } from '@/lib/utils'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts'
 
 const COLORS = ['#1565C0', '#2196F3', '#64B5F6', '#BBDEFB']
 
 export function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([])
-  const [institutions, setInstitutions] = useState<Institution[]>([])
+  const [courseCount, setCourseCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
+  const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
       usersApi.getAll({ limit: 100 }),
-      institutionsApi.getAll(),
       coursesApi.getAll(),
-    ]).then(([u, i]) => {
+    ]).then(([u, c]) => {
       setUsers(u.data.data ?? [])
-      setInstitutions(i.data.data ?? [])
-    }).catch(() => {
-      // Use mock data in development if backend not available
-      setUsers([
-        { id: '1', email: 'admin@teameval.edu.co', firstName: 'Administrador', lastName: 'Sistema', role: 'ADMIN', isActive: true, createdAt: new Date().toISOString() },
-        { id: '2', email: 'docente@teameval.edu.co', firstName: 'Jorge', lastName: 'Aldana', role: 'TEACHER', isActive: true, createdAt: new Date().toISOString() },
-        { id: '3', email: 'est1@teameval.edu.co', firstName: 'Estudiante', lastName: 'Uno', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
-        { id: '4', email: 'est2@teameval.edu.co', firstName: 'Estudiante', lastName: 'Dos', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
-        { id: '5', email: 'est3@teameval.edu.co', firstName: 'Estudiante', lastName: 'Tres', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
-        { id: '6', email: 'est4@teameval.edu.co', firstName: 'Estudiante', lastName: 'Cuatro', role: 'STUDENT', isActive: true, createdAt: new Date().toISOString() },
-      ])
-      setInstitutions([
-        { id: '1', name: 'Institución Demo', code: 'DEMO', city: 'Demo City', country: 'Colombia', isActive: true }
-      ])
+      setCourseCount((c.data.data ?? []).length)
+    }).catch((err: unknown) => {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(msg ?? 'No se pudieron cargar los datos del panel.')
     }).finally(() => setLoading(false))
   }, [])
 
   const roleData = [
     { name: 'Estudiantes', value: users.filter(u => u.role === 'STUDENT').length },
-    { name: 'Docentes', value: users.filter(u => u.role === 'TEACHER').length },
-    { name: 'Admins', value: users.filter(u => u.role === 'ADMIN').length },
+    { name: 'Docente', value: users.filter(u => u.role === 'ADMIN' || u.role === 'TEACHER').length },
   ]
 
-  const activityData = [
-    { month: 'Feb', evaluaciones: 12, usuarios: 45 },
-    { month: 'Mar', evaluaciones: 28, usuarios: 52 },
-    { month: 'Abr', evaluaciones: 35, usuarios: 58 },
-    { month: 'May', evaluaciones: 42, usuarios: 61 },
-    { month: 'Jun', evaluaciones: 38, usuarios: 63 },
-  ]
+  const handleStatusChange = async (userId: string, isActive: boolean) => {
+    setUpdatingUserId(userId)
+    setError('')
+    setOpenStatusMenuId(null)
+    try {
+      const response = await usersApi.update(userId, { isActive })
+      setUsers((prev) => prev.map((user) => (
+        user.id === userId ? { ...user, ...response.data.data } : user
+      )))
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(msg ?? 'No se pudo actualizar el estado del usuario.')
+    } finally {
+      setUpdatingUserId(null)
+    }
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {error}
       </div>
     )
   }
@@ -72,42 +79,17 @@ export function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard title="Total Usuarios" value={users.length} icon={Users} color="blue"
           subtitle={`${users.filter(u => u.isActive).length} activos`} />
-        <StatCard title="Instituciones" value={institutions.length} icon={Building2} color="purple"
-          subtitle="Registradas en la plataforma" />
-        <StatCard title="Cursos Activos" value={4} icon={BookOpen} color="green"
-          subtitle="Período 2024-2" />
-        <StatCard title="Evaluaciones" value={24} icon={ClipboardList} color="amber"
-          subtitle="Completadas este período" />
+        <StatCard title="Cursos" value={courseCount} icon={BookOpen} color="green"
+          subtitle="Registrados en la plataforma" />
+        <StatCard title="Estudiantes" value={users.filter(u => u.role === 'STUDENT').length} icon={ClipboardList} color="amber"
+          subtitle="Inscritos en todos los cursos" />
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity chart */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" />
-              Actividad de la Plataforma
-            </CardTitle>
-            <CardDescription>Evaluaciones completadas y usuarios activos por mes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={activityData} barSize={20}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }} />
-                <Bar dataKey="evaluaciones" fill="#1565C0" name="Evaluaciones" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="usuarios" fill="#64B5F6" name="Usuarios" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 gap-6">
         {/* Role distribution */}
         <Card>
           <CardHeader>
@@ -148,6 +130,7 @@ export function AdminDashboard() {
                   <th className="text-left font-medium text-gray-500 pb-3">Correo</th>
                   <th className="text-left font-medium text-gray-500 pb-3">Rol</th>
                   <th className="text-left font-medium text-gray-500 pb-3">Estado</th>
+                  <th className="text-left font-medium text-gray-500 pb-3">Equipo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -170,9 +153,42 @@ export function AdminDashboard() {
                       </span>
                     </td>
                     <td className="py-3">
-                      <Badge variant={user.isActive ? 'success' : 'secondary'}>
-                        {user.isActive ? 'Activo' : 'Inactivo'}
-                      </Badge>
+                      <div className="relative flex items-center gap-2">
+                        <span
+                          className={`inline-block h-3 w-3 rounded-full ${user.isActive ? 'bg-emerald-500' : 'bg-red-500'}`}
+                          title={user.isActive ? 'Activo' : 'Inactivo'}
+                        />
+                        <button
+                          type="button"
+                          className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                          onClick={() => setOpenStatusMenuId((current) => current === user.id ? null : user.id)}
+                          disabled={updatingUserId === user.id || user.role === 'ADMIN'}
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </button>
+                        {updatingUserId === user.id && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
+                        {openStatusMenuId === user.id && (
+                          <div className="absolute left-6 top-7 z-10 min-w-28 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                            <button
+                              type="button"
+                              className="block w-full rounded-md px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-50"
+                              onClick={() => handleStatusChange(user.id, true)}
+                            >
+                              Activo
+                            </button>
+                            <button
+                              type="button"
+                              className="block w-full rounded-md px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-50"
+                              onClick={() => handleStatusChange(user.id, false)}
+                            >
+                              Inactivo
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 text-gray-500">
+                      {user.teamName ?? user.groupName ?? (user.role === 'STUDENT' ? 'Sin grupo' : 'No aplica')}
                     </td>
                   </tr>
                 ))}

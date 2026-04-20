@@ -1,51 +1,18 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { ArrowLeft, Send, Loader2, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { evaluationsApi } from '@/services/api'
+import { useAuthStore } from '@/store/authStore'
 import type { Rubric } from '@/types'
 
-const MOCK_RUBRIC: Rubric = {
-  id: 'r1', name: 'Rúbrica  – Coevaluación', description: '', version: 1, isActive: true, isTemplate: true, createdAt: '',
-  criteria: [
-    { id: 'c1', name: 'Comunicación efectiva', description: 'Capacidad de transmitir ideas con claridad y precisión', weight: 0.20, maxScore: 5, rubricId: 'r1',
-      levels: [
-        { id: 'l1', name: 'Excelente',  score: 5, description: 'Comunica ideas de forma clara, precisa y oportuna en todo momento' },
-        { id: 'l2', name: 'Bueno',      score: 4, description: 'Comunica ideas claramente en la mayoría de situaciones' },
-        { id: 'l3', name: 'Aceptable',  score: 3, description: 'Comunica ideas con claridad moderada, con algunas imprecisiones' },
-        { id: 'l4', name: 'Deficiente', score: 2, description: 'Tiene dificultades para comunicar ideas con claridad' },
-      ]},
-    { id: 'c2', name: 'Colaboración y trabajo cooperativo', description: 'Contribución activa y apoyo al equipo', weight: 0.20, maxScore: 5, rubricId: 'r1',
-      levels: [
-        { id: 'l5', name: 'Excelente',  score: 5, description: 'Contribuye activamente al equipo, apoya a sus compañeros constantemente' },
-        { id: 'l6', name: 'Bueno',      score: 4, description: 'Generalmente contribuye al equipo y apoya a compañeros' },
-        { id: 'l7', name: 'Aceptable',  score: 3, description: 'Contribución moderada, con apoyo limitado al equipo' },
-        { id: 'l8', name: 'Deficiente', score: 2, description: 'Contribución mínima al equipo' },
-      ]},
-    { id: 'c3', name: 'Cumplimiento de compromisos', description: 'Entrega puntual de las tareas asignadas', weight: 0.20, maxScore: 5, rubricId: 'r1',
-      levels: [
-        { id: 'l9',  name: 'Excelente',  score: 5, description: 'Cumple todos los compromisos dentro del plazo acordado' },
-        { id: 'l10', name: 'Bueno',      score: 4, description: 'Cumple la mayoría de compromisos puntualmente' },
-        { id: 'l11', name: 'Aceptable',  score: 3, description: 'Cumple compromisos con algunos retrasos menores' },
-        { id: 'l12', name: 'Deficiente', score: 2, description: 'Frecuentemente incumple o retrasa compromisos' },
-      ]},
-    { id: 'c4', name: 'Participación en reuniones', description: 'Asistencia y aporte activo en reuniones del equipo', weight: 0.20, maxScore: 5, rubricId: 'r1',
-      levels: [
-        { id: 'l13', name: 'Excelente',  score: 5, description: 'Asiste puntualmente a todas las reuniones y participa activamente' },
-        { id: 'l14', name: 'Bueno',      score: 4, description: 'Asiste a la mayoría de reuniones con participación activa' },
-        { id: 'l15', name: 'Aceptable',  score: 3, description: 'Asistencia irregular con participación moderada' },
-        { id: 'l16', name: 'Deficiente', score: 2, description: 'Asistencia deficiente y escasa participación' },
-      ]},
-    { id: 'c5', name: 'Resolución de conflictos', description: 'Gestión constructiva de desacuerdos', weight: 0.20, maxScore: 5, rubricId: 'r1',
-      levels: [
-        { id: 'l17', name: 'Excelente',  score: 5, description: 'Resuelve conflictos de manera constructiva, promoviendo el consenso' },
-        { id: 'l18', name: 'Bueno',      score: 4, description: 'Maneja la mayoría de conflictos de forma positiva' },
-        { id: 'l19', name: 'Aceptable',  score: 3, description: 'Maneja conflictos básicos pero evita confrontaciones' },
-        { id: 'l20', name: 'Deficiente', score: 2, description: 'Dificultad para manejar conflictos constructivamente' },
-      ]},
-  ],
+type RawPerformanceLevel = {
+  id: string
+  name: string
+  score: number
+  description: string
 }
 
 const levelColor: Record<number, string> = {
@@ -53,34 +20,84 @@ const levelColor: Record<number, string> = {
   4: 'border-blue-400 bg-blue-50 text-blue-800',
   3: 'border-amber-400 bg-amber-50 text-amber-800',
   2: 'border-red-400 bg-red-50 text-red-800',
+  1: 'border-rose-500 bg-rose-50 text-rose-800',
 }
 
 const levelBadge: Record<number, string> = {
-  5: 'bg-emerald-400', 4: 'bg-blue-400', 3: 'bg-amber-400', 2: 'bg-red-400',
+  5: 'bg-emerald-400', 4: 'bg-blue-400', 3: 'bg-amber-400', 2: 'bg-red-400', 1: 'bg-rose-500',
+}
+
+const defaultLevelContent: Record<number, { name: string; description: string }> = {
+  5: { name: 'Excelente', description: 'Desempeño sobresaliente en este criterio.' },
+  4: { name: 'Bueno', description: 'Cumple muy bien este criterio en la mayoría de situaciones.' },
+  3: { name: 'Aceptable', description: 'Cumple este criterio de forma suficiente, con aspectos por mejorar.' },
+  2: { name: 'Bajo', description: 'Cumple este criterio de forma limitada y requiere mejora.' },
+  1: { name: 'Muy bajo', description: 'No alcanza el nivel esperado en este criterio.' },
+}
+
+function normalizeLevels(levels: RawPerformanceLevel[]) {
+  const levelsByScore = new Map<number, RawPerformanceLevel>()
+
+  levels.forEach((level) => {
+    levelsByScore.set(level.score, level)
+  })
+
+  return [5, 4, 3, 2, 1].map((score) => {
+    const existing = levelsByScore.get(score)
+    if (existing) return existing
+
+    return {
+      id: `fallback-${score}`,
+      score,
+      name: defaultLevelContent[score].name,
+      description: defaultLevelContent[score].description,
+    }
+  })
 }
 
 export function EvaluationFormPage() {
   const { evalId } = useParams()
   const navigate = useNavigate()
-  const [rubric, setRubric] = useState<Rubric>(MOCK_RUBRIC)
+  const location = useLocation()
+  const { user } = useAuthStore()
+  const backPath = user?.role === 'STUDENT' ? '/student/evaluations' : '/teacher/pending'
+  const navigationState = location.state as { evaluateeName?: string } | null
+  const [rubric, setRubric] = useState<Rubric | null>(null)
+  const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [submitError, setSubmitError] = useState('')
   const [scores, setScores] = useState<Record<string, number>>({})
   const [comments, setComments] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [evalInfo, setEvalInfo] = useState<{ type: string; evaluateeName: string }>({ type: 'PEER', evaluateeName: 'Luis Martínez' })
+  const [evalInfo, setEvalInfo] = useState<{ type: string; evaluateeName: string } | null>(null)
 
   useEffect(() => {
     if (!evalId) return
+    setLoading(true)
     evaluationsApi.getById(evalId)
       .then(r => {
         const ev = r.data.data
+        const evaluatedName = ev.evaluatee
+          ? `${ev.evaluatee.firstName} ${ev.evaluatee.lastName}`
+          : ev.evaluated
+            ? `${ev.evaluated.firstName} ${ev.evaluated.lastName}`
+            : null
+        const fallbackEvaluateeName =
+          ev.type === 'SELF'
+            ? 'Autoevaluación'
+            : ev.type === 'PEER'
+              ? (navigationState?.evaluateeName ?? 'tu compañero')
+              : 'el estudiante'
         setEvalInfo({
           type: ev.type,
-          evaluateeName: ev.evaluatee ? `${ev.evaluatee.firstName} ${ev.evaluatee.lastName}` : 'Autoevaluación',
+          evaluateeName: evaluatedName ?? fallbackEvaluateeName,
         })
         const realRubric = ev.process?.rubric
-        if (!realRubric) return
+        if (!realRubric) {
+          setLoadError('Esta evaluación no tiene una rúbrica asignada.')
+          return
+        }
         setRubric({
           id: realRubric.id,
           name: realRubric.name,
@@ -94,7 +111,7 @@ export function EvaluationFormPage() {
             name: string
             description?: string
             weight: number
-            performanceLevels?: Array<{ id: string; name: string; score: number; description: string }>
+            performanceLevels?: RawPerformanceLevel[]
           }) => ({
             id: criterion.id,
             name: criterion.name,
@@ -102,7 +119,7 @@ export function EvaluationFormPage() {
             weight: criterion.weight,
             maxScore: 5,
             rubricId: realRubric.id,
-            levels: (criterion.performanceLevels ?? []).map((level) => ({
+            levels: normalizeLevels(criterion.performanceLevels ?? []).map((level) => ({
               id: level.id,
               name: level.name,
               score: level.score,
@@ -111,17 +128,32 @@ export function EvaluationFormPage() {
           })),
         })
       })
-      .catch(() => setLoadError('No se pudo cargar la evaluación real.'))
-  }, [evalId])
+      .catch((err: unknown) => {
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        setLoadError(msg ?? 'No se pudo cargar la evaluación.')
+      })
+      .finally(() => setLoading(false))
+  }, [evalId, navigationState?.evaluateeName])
 
   const answered = Object.keys(scores).length
-  const total = rubric.criteria?.length ?? 0
+  const total = rubric?.criteria?.length ?? 0
   const pct = total > 0 ? Math.round((answered / total) * 100) : 0
-  const canSubmit = answered === total
+  const canSubmit = total > 0 && answered === total
+  const evaluationTitle =
+    evalInfo?.type === 'SELF'
+      ? 'Autoevaluación'
+      : evalInfo?.type === 'PEER'
+        ? `Evaluando a ${evalInfo?.evaluateeName ?? 'tu compañero'}`
+        : `Evaluación de ${evalInfo?.evaluateeName ?? 'el estudiante'}`
+  const evaluationSubtitle =
+    evalInfo?.type === 'PEER'
+      ? `Compañero evaluado: ${evalInfo?.evaluateeName ?? 'tu compañero'}`
+      : rubric?.name ?? ''
 
   const handleSubmit = async () => {
     if (!canSubmit || !evalId) return
     setSubmitting(true)
+    setSubmitError('')
     const payload = {
       scores: Object.entries(scores).map(([criteriaId, score]) => ({
         criteriaId, score, comment: comments[criteriaId] ?? '',
@@ -130,8 +162,9 @@ export function EvaluationFormPage() {
     try {
       await evaluationsApi.submit(evalId, payload)
       setSubmitted(true)
-    } catch {
-      setSubmitted(true) // show success anyway for demo
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setSubmitError(msg ?? 'No se pudo enviar la evaluación. Intenta de nuevo.')
     } finally {
       setSubmitting(false)
     }
@@ -145,7 +178,29 @@ export function EvaluationFormPage() {
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Evaluación enviada!</h2>
         <p className="text-gray-500 mb-6 max-w-sm">Tu evaluación ha sido registrada exitosamente.</p>
-        <Button onClick={() => navigate('/student/evaluations')}>Volver a mis evaluaciones</Button>
+        <Button onClick={() => navigate(backPath)}>Volver a mis evaluaciones</Button>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh] text-gray-500">
+        <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        Cargando evaluación...
+      </div>
+    )
+  }
+
+  if (loadError || !rubric) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate(backPath)} className="gap-2">
+          <ArrowLeft className="w-4 h-4" />Volver
+        </Button>
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {loadError || 'No se pudo cargar la evaluación.'}
+        </div>
       </div>
     )
   }
@@ -154,23 +209,17 @@ export function EvaluationFormPage() {
     <div className="space-y-5 max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/student/evaluations')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(backPath)}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-gray-900">
-            {evalInfo.type === 'SELF' ? 'Autoevaluación' : `Evaluando a ${evalInfo.evaluateeName}`}
-          </h1>
-          <p className="text-sm text-gray-500">{rubric.name}</p>
+          <h1 className="text-xl font-bold text-gray-900">{evaluationTitle}</h1>
+          <p className="text-sm text-gray-500">{evaluationSubtitle}</p>
+          {evalInfo?.type === 'PEER' && (
+            <p className="text-xs text-gray-400">{rubric.name}</p>
+          )}
         </div>
       </div>
-
-      {/* Progress bar */}
-      {loadError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {loadError}
-        </div>
-      )}
 
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex justify-between text-sm mb-2">
@@ -238,7 +287,12 @@ export function EvaluationFormPage() {
       })}
 
       {/* Submit */}
-      <div className="sticky bottom-4">
+      <div className="sticky bottom-4 space-y-2">
+        {submitError && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {submitError}
+          </div>
+        )}
         <Button
           className="w-full h-12 gap-2 shadow-lg text-base"
           disabled={!canSubmit || submitting}

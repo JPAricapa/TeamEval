@@ -9,6 +9,10 @@ export interface User {
   role: Role
   institutionId?: string
   institution?: Institution
+  groupName?: string | null
+  teamName?: string | null
+  courseName?: string | null
+  courseCode?: string | null
   isActive: boolean
   createdAt: string
 }
@@ -62,6 +66,7 @@ export interface Course {
   period?: AcademicPeriod
   programId: string
   isActive: boolean
+  studentCount?: number
 }
 
 export interface Group {
@@ -124,11 +129,22 @@ export interface EvaluationProcess {
   teacherWeight: number
   courseId: string
   course?: Course
-  rubricId: string
+  rubricId?: string
+  legacyRubric?: Rubric
+  selfRubricId?: string
+  peerRubricId?: string
+  teacherRubricId?: string
+  selfRubric?: Rubric
+  peerRubric?: Rubric
+  teacherRubric?: Rubric
   rubric?: Rubric
   startDate?: string
   endDate?: string
   createdAt: string
+  totalCount?: number
+  completedCount?: number
+  groupCount?: number
+  studentCount?: number
 }
 
 export interface EvaluationScore {
@@ -144,7 +160,9 @@ export interface Evaluation {
   evaluatorId: string
   evaluateeId: string
   evaluatee?: User
+  evaluated?: Pick<User, 'firstName' | 'lastName'>
   processId: string
+  process?: EvaluationProcess
   scores?: EvaluationScore[]
   finalScore?: number
   submittedAt?: string

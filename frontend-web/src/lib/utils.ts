@@ -27,7 +27,7 @@ export function getScoreBg(score: number, max: number = 5): string {
 
 export function getRoleName(role: string): string {
   const map: Record<string, string> = {
-    ADMIN: 'Administrador',
+    ADMIN: 'Docente',
     TEACHER: 'Docente',
     STUDENT: 'Estudiante',
   }

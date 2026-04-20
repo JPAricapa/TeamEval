@@ -14,6 +14,8 @@ export class AppError extends Error {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = true;
+    this.name = 'AppError';
+    Object.setPrototypeOf(this, new.target.prototype);
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -32,11 +34,17 @@ export const errorHandler = (
     method: req.method
   });
 
+  const operationalError = err instanceof AppError
+    ? err
+    : (typeof (err as Partial<AppError>)?.statusCode === 'number'
+        ? err as AppError
+        : null);
+
   // Error de nuestra aplicación
-  if (err instanceof AppError) {
-    res.status(err.statusCode).json({
+  if (operationalError) {
+    res.status(operationalError.statusCode).json({
       success: false,
-      message: err.message
+      message: operationalError.message
     });
     return;
   }

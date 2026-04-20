@@ -43,7 +43,7 @@ export function AcceptInvitationPage() {
       setDone(true)
       // Redirigir automáticamente al dashboard según rol
       setTimeout(() => {
-        if (user.role === 'ADMIN') navigate('/admin')
+        if (user.role === 'ADMIN') navigate('/admin/users')
         else if (user.role === 'TEACHER') navigate('/teacher')
         else navigate('/student')
       }, 2500)

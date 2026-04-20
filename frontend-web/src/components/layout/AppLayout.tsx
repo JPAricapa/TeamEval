@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import {
-  LayoutDashboard, Users, Building2, BookOpen, FileText,
+  LayoutDashboard, Users, BookOpen, FileText,
   ClipboardList, BarChart3, GraduationCap, LogOut, Menu, X,
   ChevronRight, Bell
 } from 'lucide-react'
@@ -19,15 +19,14 @@ interface NavItem {
 
 const navItems: Record<Role, NavItem[]> = {
   ADMIN: [
-    { label: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
     { label: 'Usuarios', icon: Users, href: '/admin/users' },
-    { label: 'Instituciones', icon: Building2, href: '/admin/institutions' },
   ],
   TEACHER: [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/teacher' },
     { label: 'Mis Cursos', icon: BookOpen, href: '/teacher/courses' },
     { label: 'Rúbricas', icon: FileText, href: '/teacher/rubrics' },
-    { label: 'Evaluaciones', icon: ClipboardList, href: '/teacher/evaluations' },
+    { label: 'Procesos', icon: ClipboardList, href: '/teacher/evaluations' },
+    { label: 'Evaluar Estudiantes', icon: BarChart3, href: '/teacher/pending' },
   ],
   STUDENT: [
     { label: 'Inicio', icon: LayoutDashboard, href: '/student' },
@@ -44,7 +43,13 @@ export function AppLayout({ role }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
-  const items = navItems[role]
+
+  // El admin también es docente: le mostramos ambos conjuntos de items
+  // (gestión de usuarios/institución + cursos/rúbricas/evaluaciones).
+  const items =
+    user?.role === 'ADMIN'
+      ? [...navItems.ADMIN, ...navItems.TEACHER]
+      : navItems[role]
 
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem('refreshToken')

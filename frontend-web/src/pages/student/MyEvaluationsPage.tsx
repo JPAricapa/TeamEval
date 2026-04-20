@@ -6,29 +6,45 @@ import { Badge } from '@/components/ui/badge'
 import { evaluationsApi } from '@/services/api'
 import type { Evaluation } from '@/types'
 
-const MOCK: Evaluation[] = [
-  { id: 'e1', type: 'SELF',    status: 'PENDING',   evaluatorId: 's1', evaluateeId: 's1', processId: 'p1' },
-  { id: 'e2', type: 'PEER',    status: 'PENDING',   evaluatorId: 's1', evaluateeId: 's2', processId: 'p1', evaluatee: { id: 's2', firstName: 'Luis', lastName: 'Martínez', email: '', role: 'STUDENT', isActive: true, createdAt: '' } },
-  { id: 'e3', type: 'PEER',    status: 'PENDING',   evaluatorId: 's1', evaluateeId: 's3', processId: 'p1', evaluatee: { id: 's3', firstName: 'María', lastName: 'López', email: '', role: 'STUDENT', isActive: true, createdAt: '' } },
-  { id: 'e4', type: 'PEER',    status: 'COMPLETED', evaluatorId: 's1', evaluateeId: 's4', processId: 'p0', evaluatee: { id: 's4', firstName: 'Carlos', lastName: 'Pérez', email: '', role: 'STUDENT', isActive: true, createdAt: '' } },
-  { id: 'e5', type: 'SELF',    status: 'COMPLETED', evaluatorId: 's1', evaluateeId: 's1', processId: 'p0' },
-]
-
 const typeInfo: Record<string, { label: string; color: string }> = {
   SELF:    { label: 'Autoevaluación', color: 'bg-purple-100 text-purple-700' },
-  PEER:    { label: 'Coevaluación',   color: 'bg-blue-100 text-blue-700'    },
+  PEER:    { label: 'Evaluar compañero',   color: 'bg-blue-100 text-blue-700'    },
   TEACHER: { label: 'Docente',        color: 'bg-amber-100 text-amber-700'  },
+}
+
+function getEvaluationTitle(ev: Evaluation) {
+  const evaluated = ev.evaluatee ?? ev.evaluated
+  if (ev.type === 'SELF') return 'Autoevaluación'
+  if (ev.type === 'PEER') {
+    return evaluated ? `${evaluated.firstName} ${evaluated.lastName}` : 'Evaluar compañero'
+  }
+  if (ev.type === 'TEACHER') {
+    return evaluated ? `${evaluated.firstName} ${evaluated.lastName}` : 'Evaluación docente'
+  }
+  return 'Evaluación'
+}
+
+function getEvaluationAvatar(ev: Evaluation) {
+  const evaluated = ev.evaluatee ?? ev.evaluated
+  if (ev.type === 'SELF') return 'YO'
+  if (evaluated) return `${evaluated.firstName[0]}${evaluated.lastName[0]}`
+  return '?'
 }
 
 export function MyEvaluationsPage() {
   const navigate = useNavigate()
   const [evals, setEvals] = useState<Evaluation[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     evaluationsApi.getMyPending()
       .then(r => setEvals(r.data.data ?? []))
-      .catch(() => setEvals(MOCK))
+      .catch((err: unknown) => {
+        const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+        setError(msg ?? 'No se pudieron cargar tus evaluaciones.')
+        setEvals([])
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -38,16 +54,18 @@ export function MyEvaluationsPage() {
   const EvalCard = ({ ev }: { ev: Evaluation }) => {
     const t = typeInfo[ev.type]
     const isPending = ev.status === 'PENDING'
+    const evaluated = ev.evaluatee ?? ev.evaluated
+    const evaluateeName = evaluated ? `${evaluated.firstName} ${evaluated.lastName}` : undefined
     return (
       <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isPending ? 'border-gray-200 hover:border-primary/40 hover:bg-blue-50/20 cursor-pointer' : 'border-gray-100 bg-gray-50/50'}`}
-        onClick={() => isPending && navigate(`/student/evaluations/${ev.id}`)}>
+        onClick={() => isPending && navigate(`/student/evaluations/${ev.id}`, { state: { evaluateeName } })}>
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${isPending ? 'bg-primary/10 text-primary' : 'bg-gray-200 text-gray-500'}`}>
-            {ev.evaluatee ? `${ev.evaluatee.firstName[0]}${ev.evaluatee.lastName[0]}` : 'YO'}
+            {getEvaluationAvatar(ev)}
           </div>
           <div>
             <p className="text-sm font-medium text-gray-900">
-              {ev.evaluatee ? `${ev.evaluatee.firstName} ${ev.evaluatee.lastName}` : 'Autoevaluación'}
+              {getEvaluationTitle(ev)}
             </p>
             <span className={`inline-flex text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${t.color}`}>{t.label}</span>
           </div>
@@ -68,6 +86,12 @@ export function MyEvaluationsPage() {
         <p className="text-gray-500 mt-1 text-sm">{pending.length} pendiente{pending.length !== 1 ? 's' : ''} · {completed.length} completada{completed.length !== 1 ? 's' : ''}</p>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
       ) : (
@@ -83,7 +107,7 @@ export function MyEvaluationsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {pending.map(ev => <EvalCard key={ev.id} ev={ev} />)}
+            {pending.map(ev => <EvalCard key={ev.id} ev={ev} />)}
               </CardContent>
             </Card>
           )}

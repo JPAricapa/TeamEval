@@ -11,9 +11,7 @@ import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { AcceptInvitationPage } from '@/pages/auth/AcceptInvitationPage'
 
 // Admin
-import { AdminDashboard } from '@/pages/admin/AdminDashboard'
 import { UsersPage } from '@/pages/admin/UsersPage'
-import { InstitutionsPage } from '@/pages/admin/InstitutionsPage'
 
 // Teacher
 import { TeacherDashboard } from '@/pages/teacher/TeacherDashboard'
@@ -23,6 +21,7 @@ import { RubricsPage } from '@/pages/teacher/RubricsPage'
 import { EvaluationProcessesPage } from '@/pages/teacher/EvaluationProcessesPage'
 import { ProcessDetailPage } from '@/pages/teacher/ProcessDetailPage'
 import { AnalyticsPage } from '@/pages/teacher/AnalyticsPage'
+import { TeacherPendingPage } from '@/pages/teacher/TeacherPendingPage'
 
 // Student
 import { StudentDashboard } from '@/pages/student/StudentDashboard'
@@ -42,7 +41,7 @@ function RequireAuth({ children, roles }: { children: React.ReactNode; roles?: s
 function RoleRedirect() {
   const { user } = useAuthStore()
   if (!user) return <Navigate to="/login" replace />
-  if (user.role === 'ADMIN') return <Navigate to="/admin" replace />
+  if (user.role === 'ADMIN') return <Navigate to="/admin/users" replace />
   if (user.role === 'TEACHER') return <Navigate to="/teacher" replace />
   return <Navigate to="/student" replace />
 }
@@ -89,9 +88,8 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <AdminDashboard /> },
+      { index: true, element: <Navigate to="/admin/users" replace /> },
       { path: 'users', element: <UsersPage /> },
-      { path: 'institutions', element: <InstitutionsPage /> },
     ],
   },
 
@@ -110,6 +108,8 @@ export const router = createBrowserRouter([
       { path: 'rubrics', element: <RubricsPage /> },
       { path: 'evaluations', element: <EvaluationProcessesPage /> },
       { path: 'evaluations/:processId', element: <ProcessDetailPage /> },
+      { path: 'pending', element: <TeacherPendingPage /> },
+      { path: 'evaluate/:evalId', element: <EvaluationFormPage /> },
       { path: 'analytics/:processId', element: <AnalyticsPage /> },
     ],
   },

@@ -23,7 +23,7 @@ export function LoginPage() {
       const { data } = await authApi.login(email, password)
       const { user, accessToken, refreshToken } = data.data
       setAuth(user, accessToken, refreshToken)
-      if (user.role === 'ADMIN') navigate('/admin')
+      if (user.role === 'ADMIN') navigate('/admin/users')
       else if (user.role === 'TEACHER') navigate('/teacher')
       else navigate('/student')
     } catch (err: unknown) {
@@ -55,7 +55,7 @@ export function LoginPage() {
           </p>
           <div className="mt-10 space-y-4">
             {[
-              { n: '3', label: 'Roles: Admin, Docente, Estudiante' },
+              { n: '2', label: 'Roles: Docente y Estudiante' },
               { n: '6', label: 'Criterios de evaluación de trabajo en equipo' },
               { n: '∞', label: 'Exportación Excel · CSV · PDF' },
             ].map((item) => (
@@ -150,28 +150,6 @@ export function LoginPage() {
                 )}
               </Button>
             </form>
-
-            {/* Demo credentials */}
-            <div className="mt-6 pt-5 border-t border-gray-100">
-              <p className="text-xs text-gray-400 font-medium text-center mb-3">CREDENCIALES DE DEMO</p>
-              <div className="space-y-2 text-xs">
-                {[
-                  { role: 'Admin', email: 'admin@teameval.edu.co', pwd: 'TeamEval2024!' },
-                  { role: 'Docente', email: 'docente@teameval.edu.co', pwd: 'TeamEval2024!' },
-                  { role: 'Estudiante', email: 'est1@teameval.edu.co', pwd: 'TeamEval2024!' },
-                ].map((c) => (
-                  <button
-                    key={c.role}
-                    type="button"
-                    onClick={() => { setEmail(c.email); setPassword(c.pwd) }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-left transition-colors"
-                  >
-                    <span className="text-gray-500">{c.role}</span>
-                    <span className="text-gray-700 font-mono">{c.email}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>
