@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { coursesApi, evaluationsApi, groupsApi } from '@/services/api'
+import { coursesApi, evaluationsApi, groupsApi, usersApi } from '@/services/api'
 
 type CourseDetail = {
   id: string
@@ -112,32 +112,110 @@ export function CourseDetailPage() {
       return
     }
 
+    const studentsToCreate = newGroupStudents.filter((student) =>
+      student.email || student.firstName || student.lastName || student.nationalId
+    )
+
+    const incompleteRows = studentsToCreate
+      .map((student, index) => ({
+        index,
+        student,
+      }))
+      .filter(({ student }) =>
+        !student.email.trim() ||
+        !student.firstName.trim() ||
+        !student.lastName.trim() ||
+        !student.nationalId.trim()
+      )
+
+    if (incompleteRows.length > 0) {
+      setGroupError(
+        `Completa nombres, apellidos, correo y cédula en ${incompleteRows
+          .map(({ index }) => `Integrante ${index + 1}`)
+          .join(', ')}.`
+      )
+      return
+    }
+
+    const duplicatedEmails = studentsToCreate.reduce<string[]>((acc, student, index, arr) => {
+      const normalized = student.email.trim().toLowerCase()
+      if (!normalized) return acc
+      const firstIndex = arr.findIndex((item) => item.email.trim().toLowerCase() === normalized)
+      if (firstIndex !== index && !acc.includes(normalized)) acc.push(normalized)
+      return acc
+    }, [])
+
+    if (duplicatedEmails.length > 0) {
+      setGroupError(`Hay correos repetidos en el grupo: ${duplicatedEmails.join(', ')}`)
+      return
+    }
+
+    const duplicatedNationalIds = studentsToCreate.reduce<string[]>((acc, student, index, arr) => {
+      const normalized = student.nationalId.trim()
+      if (!normalized) return acc
+      const firstIndex = arr.findIndex((item) => item.nationalId.trim() === normalized)
+      if (firstIndex !== index && !acc.includes(normalized)) acc.push(normalized)
+      return acc
+    }, [])
+
+    if (duplicatedNationalIds.length > 0) {
+      setGroupError(`Hay cédulas repetidas en el grupo: ${duplicatedNationalIds.join(', ')}`)
+      return
+    }
+
     setCreatingGroup(true)
     setGroupError('')
     try {
-      const groupResponse = await groupsApi.create({
-        courseId: course.id,
-        name: groupName.trim(),
-      })
-
-      const createdGroupId = groupResponse.data.data?.id as string | undefined
-      if (!createdGroupId) {
-        throw new Error('No se pudo obtener el grupo creado.')
+      if (studentsToCreate.length === 0) {
+        await groupsApi.create({
+          courseId: course.id,
+          name: groupName.trim(),
+        })
+        resetGroupModal()
+        loadCourse()
+        return
       }
 
-      const studentsToCreate = newGroupStudents.filter((student) =>
-        student.email || student.firstName || student.lastName || student.nationalId
-      )
+      const response = await usersApi.bulkImportStudents({
+        courseId: course.id,
+        groupName: groupName.trim(),
+        students: studentsToCreate.map((student) => ({
+          email: student.email.trim(),
+          firstName: student.firstName.trim(),
+          lastName: student.lastName.trim(),
+          nationalId: student.nationalId.trim(),
+        })),
+      })
 
-      for (const student of studentsToCreate) {
-        if (!student.email || !student.firstName || !student.lastName || !student.nationalId) {
-          throw new Error('Cada integrante debe tener nombres, apellidos, correo y cédula.')
-        }
-        await groupsApi.createStudent(createdGroupId, student)
+      const result = response.data.data as {
+        summary?: { created: number; existing: number; errors: number }
+        details?: { errors?: Array<{ row: number; email: string; reason: string }> }
+      }
+      const failedRows = result.details?.errors ?? []
+
+      if (failedRows.length > 0) {
+        const failedEmails = new Set(failedRows.map((item) => item.email.toLowerCase()))
+        setNewGroupStudents(
+          studentsToCreate.filter((student) => failedEmails.has(student.email.trim().toLowerCase()))
+        )
+        setGroupError(
+          `Se creó el grupo, pero ${failedRows.length} integrante(s) fallaron. ${failedRows
+            .slice(0, 3)
+            .map((item) => `Fila ${item.row}: ${item.reason}`)
+            .join(' ')}`
+        )
+        loadCourse()
+        return
       }
 
       resetGroupModal()
       loadCourse()
+
+      if ((result.summary?.existing ?? 0) > 0) {
+        setError(
+          `Grupo creado. ${result.summary?.created ?? 0} estudiantes nuevos y ${result.summary?.existing ?? 0} ya existían.`
+        )
+      }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setGroupError(msg ?? (err instanceof Error ? err.message : 'No se pudo crear el grupo.'))
