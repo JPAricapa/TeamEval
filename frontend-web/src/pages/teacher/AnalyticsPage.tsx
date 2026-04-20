@@ -87,12 +87,15 @@ export function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<CourseAnalytics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [downloadError, setDownloadError] = useState('')
+  const [downloading, setDownloading] = useState<'excel' | 'csv' | 'pdf' | null>(null)
   const [tab, setTab] = useState(0)
 
   useEffect(() => {
     if (!processId) return
     setLoading(true)
     setError('')
+    setDownloadError('')
     Promise.resolve()
       .then(() => consolidationApi.consolidate(processId).catch(() => null))
       .then(() => analyticsApi.getCourse(processId))
@@ -104,6 +107,21 @@ export function AnalyticsPage() {
       })
       .finally(() => setLoading(false))
   }, [processId])
+
+  const handleExport = async (format: 'excel' | 'csv' | 'pdf') => {
+    if (!processId) return
+
+    setDownloading(format)
+    setDownloadError('')
+
+    try {
+      await exportApi[format](processId)
+    } catch (err: unknown) {
+      setDownloadError(err instanceof Error ? err.message : 'No se pudo descargar el archivo.')
+    } finally {
+      setDownloading(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -146,19 +164,37 @@ export function AnalyticsPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5"
-            onClick={() => window.open(exportApi.excel(processId!), '_blank')}>
-            <Download className="w-3.5 h-3.5" /> Excel
+            onClick={() => handleExport('excel')}
+            disabled={downloading !== null}>
+            {downloading === 'excel'
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Download className="w-3.5 h-3.5" />}
+            Excel
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5"
-            onClick={() => window.open(exportApi.csv(processId!), '_blank')}>
-            <Download className="w-3.5 h-3.5" /> CSV
+            onClick={() => handleExport('csv')}
+            disabled={downloading !== null}>
+            {downloading === 'csv'
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Download className="w-3.5 h-3.5" />}
+            CSV
           </Button>
           <Button size="sm" className="gap-1.5"
-            onClick={() => window.open(exportApi.pdf(processId!), '_blank')}>
-            <Download className="w-3.5 h-3.5" /> PDF
+            onClick={() => handleExport('pdf')}
+            disabled={downloading !== null}>
+            {downloading === 'pdf'
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <Download className="w-3.5 h-3.5" />}
+            PDF
           </Button>
         </div>
       </div>
+
+      {downloadError && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {downloadError}
+        </div>
+      )}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

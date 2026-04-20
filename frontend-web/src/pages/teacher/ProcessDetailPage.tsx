@@ -100,6 +100,7 @@ export function ProcessDetailPage() {
   const [results, setResults] = useState<Array<Record<string, unknown>>>([])
   const [resultsLoading, setResultsLoading] = useState(false)
   const [actionBusy, setActionBusy] = useState(false)
+  const [downloading, setDownloading] = useState<'excel' | 'pdf' | null>(null)
 
   const loadProcess = () => {
     if (!processId) return
@@ -162,6 +163,20 @@ export function ProcessDetailPage() {
       setError(msg ?? 'No se pudo cerrar el proceso.')
     } finally {
       setActionBusy(false)
+    }
+  }
+
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    if (!processId) return
+    setDownloading(format)
+    setError('')
+
+    try {
+      await exportApi[format](processId)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'No se pudo descargar el archivo.')
+    } finally {
+      setDownloading(null)
     }
   }
 
@@ -230,12 +245,20 @@ export function ProcessDetailPage() {
           {process.status === 'CLOSED' && (
             <>
               <Button variant="outline" className="gap-1.5 text-sm"
-                onClick={() => window.open(exportApi.excel(process.id), '_blank')}>
-                <Download className="w-4 h-4" /> Excel
+                onClick={() => handleExport('excel')}
+                disabled={downloading !== null}>
+                {downloading === 'excel'
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <Download className="w-4 h-4" />}
+                Excel
               </Button>
               <Button variant="outline" className="gap-1.5 text-sm"
-                onClick={() => window.open(exportApi.pdf(process.id), '_blank')}>
-                <Download className="w-4 h-4" /> PDF
+                onClick={() => handleExport('pdf')}
+                disabled={downloading !== null}>
+                {downloading === 'pdf'
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <Download className="w-4 h-4" />}
+                PDF
               </Button>
             </>
           )}

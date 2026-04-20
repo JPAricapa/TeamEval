@@ -70,6 +70,75 @@ api.interceptors.response.use(
   }
 )
 
+function getDownloadFilename(contentDisposition: string | undefined, fallback: string) {
+  if (!contentDisposition) return fallback
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1])
+    } catch {
+      return utf8Match[1]
+    }
+  }
+
+  const plainMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/i)
+  const rawName = plainMatch?.[1] ?? plainMatch?.[2]
+  return rawName?.trim() || fallback
+}
+
+async function getDownloadErrorMessage(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data
+
+    if (data instanceof Blob) {
+      const text = await data.text()
+      if (!text) return 'No se pudo descargar el archivo.'
+
+      try {
+        const parsed = JSON.parse(text) as { message?: string }
+        return parsed.message ?? 'No se pudo descargar el archivo.'
+      } catch {
+        return text
+      }
+    }
+
+    const responseMessage =
+      typeof data === 'object' &&
+      data !== null &&
+      'message' in data &&
+      typeof (data as { message?: unknown }).message === 'string'
+        ? (data as { message: string }).message
+        : ''
+
+    if (responseMessage) return responseMessage
+  }
+
+  return error instanceof Error && error.message
+    ? error.message
+    : 'No se pudo descargar el archivo.'
+}
+
+async function downloadExportFile(path: string, fallbackFilename: string) {
+  try {
+    const response = await api.get(path, { responseType: 'blob' })
+    const blob = response.data instanceof Blob
+      ? response.data
+      : new Blob([response.data], { type: response.headers['content-type'] })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+
+    link.href = downloadUrl
+    link.download = getDownloadFilename(response.headers['content-disposition'], fallbackFilename)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(downloadUrl)
+  } catch (error) {
+    throw new Error(await getDownloadErrorMessage(error))
+  }
+}
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 export const authApi = {
   login: (email: string, password: string) =>
@@ -197,7 +266,10 @@ export const analyticsApi = {
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 export const exportApi = {
-  excel: (processId: string) => `${BASE_URL}/export/excel/${processId}`,
-  csv: (processId: string) => `${BASE_URL}/export/csv/${processId}`,
-  pdf: (processId: string) => `${BASE_URL}/export/pdf/${processId}`,
+  excel: (processId: string) =>
+    downloadExportFile(`/export/excel/${processId}`, `resultados_${processId}.xlsx`),
+  csv: (processId: string) =>
+    downloadExportFile(`/export/csv/${processId}`, `resultados_${processId}.csv`),
+  pdf: (processId: string) =>
+    downloadExportFile(`/export/pdf/${processId}`, `reporte_${processId}.pdf`),
 }

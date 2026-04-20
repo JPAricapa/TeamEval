@@ -93,6 +93,7 @@ export function EvaluationProcessesPage() {
   const [saving, setSaving] = useState(false)
   const [activating, setActivating] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState<string | null>(null)
   const [confirmDeleteProcess, setConfirmDeleteProcess] = useState<EvaluationProcess | null>(null)
 
   // Selección manual de rúbricas cuando el curso no las tiene asociadas
@@ -238,6 +239,23 @@ export function EvaluationProcessesPage() {
     }
   }
 
+  const handleExport = async (processId: string, format: 'excel' | 'pdf') => {
+    const downloadKey = `${processId}:${format}`
+    setDownloading(downloadKey)
+    setError('')
+
+    try {
+      await exportApi[format](processId)
+    } catch (err: unknown) {
+      const fallback = format === 'excel'
+        ? 'No se pudo descargar el archivo Excel.'
+        : 'No se pudo descargar el archivo PDF.'
+      setError(err instanceof Error ? err.message : fallback)
+    } finally {
+      setDownloading(null)
+    }
+  }
+
   const missingRubrics =
     !rubricAssignments.selfRubric || !rubricAssignments.peerRubric || !rubricAssignments.teacherRubric
 
@@ -338,12 +356,20 @@ export function EvaluationProcessesPage() {
                             <BarChart3 className="w-3.5 h-3.5" /> Ver analítica
                           </Button>
                           <Button size="sm" variant="outline" className="gap-1 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-                            onClick={() => window.open(exportApi.excel(proc.id), '_blank')}>
-                            <Download className="w-3.5 h-3.5" /> Excel
+                            onClick={() => handleExport(proc.id, 'excel')}
+                            disabled={downloading !== null}>
+                            {downloading === `${proc.id}:excel`
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Download className="w-3.5 h-3.5" />}
+                            Excel
                           </Button>
                           <Button size="sm" variant="outline" className="gap-1 text-rose-700 border-rose-200 hover:bg-rose-50"
-                            onClick={() => window.open(exportApi.pdf(proc.id), '_blank')}>
-                            <Download className="w-3.5 h-3.5" /> PDF
+                            onClick={() => handleExport(proc.id, 'pdf')}
+                            disabled={downloading !== null}>
+                            {downloading === `${proc.id}:pdf`
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <Download className="w-3.5 h-3.5" />}
+                            PDF
                           </Button>
                         </>
                       )}
