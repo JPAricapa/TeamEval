@@ -42,14 +42,31 @@ export interface AuthTokens {
 }
 
 export class AuthService {
+  private normalizeEmail(email: string) {
+    return email.trim().toLowerCase();
+  }
+
+  private async findUserByEmail(email: string) {
+    const normalizedEmail = this.normalizeEmail(email);
+
+    return prisma.user.findFirst({
+      where: {
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive'
+        }
+      }
+    });
+  }
+
   /**
    * Registrar nuevo usuario
    */
   async register(dto: RegisterDto): Promise<AuthTokens> {
+    const normalizedEmail = this.normalizeEmail(dto.email);
+
     // Verificar si el email ya existe
-    const existingUser = await prisma.user.findUnique({
-      where: { email: dto.email }
-    });
+    const existingUser = await this.findUserByEmail(normalizedEmail);
 
     if (existingUser) {
       throw new AppError('El email ya está registrado', 409);
@@ -61,7 +78,7 @@ export class AuthService {
     // Crear usuario
     const user = await prisma.user.create({
       data: {
-        email: dto.email,
+        email: normalizedEmail,
         passwordHash,
         firstName: dto.firstName,
         lastName: dto.lastName,
@@ -78,10 +95,10 @@ export class AuthService {
    * Iniciar sesión
    */
   async login(dto: LoginDto): Promise<AuthTokens> {
+    const normalizedEmail = this.normalizeEmail(dto.email);
+
     // Buscar usuario
-    const user = await prisma.user.findUnique({
-      where: { email: dto.email }
-    });
+    const user = await this.findUserByEmail(normalizedEmail);
 
     if (!user || !user.isActive) {
       throw new AppError('Credenciales inválidas', 401);
@@ -180,7 +197,7 @@ export class AuthService {
    * Siempre responde con éxito para no revelar si el email existe.
    */
   async forgotPassword(email: string): Promise<void> {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await this.findUserByEmail(email);
 
     // Responder igual aunque el usuario no exista (seguridad)
     if (!user || !user.isActive) return;

@@ -15,6 +15,10 @@ import { UserRole } from '../constants/enums';
 const router = Router();
 router.use(authenticate);
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 // GET /groups?courseId=...
 router.get('/', allRoles,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -118,9 +122,17 @@ router.post('/:id/students', teacherOrAdmin,
         throw new AppError('No puedes registrar estudiantes en un curso que no te pertenece', 403);
       }
 
-      const { email, firstName, lastName, nationalId } = req.body;
+      const { firstName, lastName, nationalId } = req.body;
+      const email = normalizeEmail(req.body.email);
 
-      let user = await prisma.user.findUnique({ where: { email } });
+      let user = await prisma.user.findFirst({
+        where: {
+          email: {
+            equals: email,
+            mode: 'insensitive'
+          }
+        }
+      });
 
       if (!user) {
         const byNationalId = await prisma.user.findUnique({ where: { nationalId } });
@@ -143,6 +155,11 @@ router.post('/:id/students', teacherOrAdmin,
         });
       } else if (user.role !== UserRole.STUDENT) {
         throw new AppError('El correo ya pertenece a un usuario que no es estudiante', 409);
+      } else if (user.email !== email) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { email }
+        });
       }
 
       await prisma.groupMember.upsert({

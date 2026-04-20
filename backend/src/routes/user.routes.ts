@@ -15,6 +15,10 @@ import { UserRole } from '../constants/enums';
 const router = Router();
 router.use(authenticate);
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 // GET /users - Listar usuarios (admin)
 router.get(
   '/',
@@ -155,10 +159,18 @@ router.post(
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, firstName, lastName, nationalId, role } = req.body;
+      const { firstName, lastName, nationalId, role } = req.body;
+      const email = normalizeEmail(req.body.email);
 
       // Verificar que el email no exista
-      const existing = await prisma.user.findUnique({ where: { email } });
+      const existing = await prisma.user.findFirst({
+        where: {
+          email: {
+            equals: email,
+            mode: 'insensitive'
+          }
+        }
+      });
       if (existing) throw new AppError('El correo ya está registrado', 409);
 
       const existingNationalId = await prisma.user.findUnique({ where: { nationalId } });
@@ -240,9 +252,17 @@ router.post(
 
       for (let i = 0; i < students.length; i++) {
         const s = students[i];
+        const normalizedEmail = normalizeEmail(s.email);
         try {
           // ¿Ya existe un usuario con ese email?
-          let user = await prisma.user.findUnique({ where: { email: s.email } });
+          let user = await prisma.user.findFirst({
+            where: {
+              email: {
+                equals: normalizedEmail,
+                mode: 'insensitive'
+              }
+            }
+          });
 
           if (!user) {
             // Validar que la cédula no esté tomada por otro usuario
@@ -252,7 +272,7 @@ router.post(
             if (byNationalId) {
               errors.push({
                 row: i + 1,
-                email: s.email,
+                email: normalizedEmail,
                 reason: 'La cédula ya está registrada a otro correo'
               });
               continue;
@@ -261,7 +281,7 @@ router.post(
             const passwordHash = await bcrypt.hash(s.nationalId, 12);
             user = await prisma.user.create({
               data: {
-                email: s.email,
+                email: normalizedEmail,
                 nationalId: s.nationalId,
                 passwordHash,
                 firstName: s.firstName,
@@ -271,9 +291,24 @@ router.post(
                 isActive: true
               }
             });
-            created.push({ email: s.email, nationalId: s.nationalId });
+            created.push({ email: normalizedEmail, nationalId: s.nationalId });
           } else {
-            existing.push({ email: s.email });
+            if (user.role !== UserRole.STUDENT) {
+              errors.push({
+                row: i + 1,
+                email: normalizedEmail,
+                reason: 'El correo ya pertenece a un usuario que no es estudiante'
+              });
+              continue;
+            }
+
+            if (user.email !== normalizedEmail) {
+              user = await prisma.user.update({
+                where: { id: user.id },
+                data: { email: normalizedEmail }
+              });
+            }
+            existing.push({ email: normalizedEmail });
           }
 
           // Asegurar membership en el grupo (upsert por la unique groupId_userId)
@@ -284,7 +319,7 @@ router.post(
           });
         } catch (err) {
           const message = err instanceof Error ? err.message : 'Error desconocido';
-          errors.push({ row: i + 1, email: s.email, reason: message });
+          errors.push({ row: i + 1, email: normalizedEmail, reason: message });
         }
       }
 
