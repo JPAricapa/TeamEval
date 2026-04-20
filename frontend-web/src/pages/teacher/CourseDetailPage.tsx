@@ -66,6 +66,26 @@ function inferRubricType(name?: string) {
   return 'Sin tipo'
 }
 
+function isValidStudentEmail(email: string) {
+  const normalized = email.trim().toLowerCase()
+  if (!normalized) return false
+
+  const basicEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!basicEmailPattern.test(normalized)) return false
+
+  const [localPart, domainPart] = normalized.split('@')
+  if (!localPart || !domainPart) return false
+
+  return (
+    !localPart.startsWith('.') &&
+    !localPart.endsWith('.') &&
+    !localPart.includes('..') &&
+    !domainPart.startsWith('.') &&
+    !domainPart.endsWith('.') &&
+    !domainPart.includes('..')
+  )
+}
+
 export function CourseDetailPage() {
   const { courseId } = useParams()
   const navigate = useNavigate()
@@ -137,6 +157,22 @@ export function CourseDetailPage() {
       setGroupError(
         `Completa nombres, apellidos, correo y cédula en ${incompleteRows
           .map(({ index }) => `Integrante ${index + 1}`)
+          .join(', ')}.`
+      )
+      return
+    }
+
+    const invalidEmailRows = studentsToCreate
+      .map((student, index) => ({
+        index,
+        email: student.email.trim(),
+      }))
+      .filter(({ email }) => !isValidStudentEmail(email))
+
+    if (invalidEmailRows.length > 0) {
+      setGroupError(
+        `Corrige el correo de ${invalidEmailRows
+          .map(({ index, email }) => `Integrante ${index + 1}${email ? ` (${email})` : ''}`)
           .join(', ')}.`
       )
       return
@@ -756,7 +792,12 @@ export function CourseDetailPage() {
                       <Input
                         id={`group-student-${student.id}-email`}
                         name={`group-student-${student.id}-email`}
+                        type="email"
                         autoComplete="off"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        inputMode="email"
+                        spellCheck={false}
                         placeholder="Correo"
                         value={student.email}
                         onChange={(e) => handleNewGroupStudentChange(student.id, 'email', e.target.value)}
