@@ -36,23 +36,16 @@ const defaultLevelContent: Record<number, { name: string; description: string }>
 }
 
 function normalizeLevels(levels: RawPerformanceLevel[]) {
-  const levelsByScore = new Map<number, RawPerformanceLevel>()
+  if (levels.length > 0) {
+    return [...levels].sort((a, b) => b.score - a.score)
+  }
 
-  levels.forEach((level) => {
-    levelsByScore.set(level.score, level)
-  })
-
-  return [5, 4, 3, 2, 1].map((score) => {
-    const existing = levelsByScore.get(score)
-    if (existing) return existing
-
-    return {
-      id: `fallback-${score}`,
-      score,
-      name: defaultLevelContent[score].name,
-      description: defaultLevelContent[score].description,
-    }
-  })
+  return [5, 4, 3, 2, 1].map((score) => ({
+    id: `fallback-${score}`,
+    score,
+    name: defaultLevelContent[score].name,
+    description: defaultLevelContent[score].description,
+  }))
 }
 
 export function EvaluationFormPage() {
@@ -98,6 +91,31 @@ export function EvaluationFormPage() {
           setLoadError('Esta evaluación no tiene una rúbrica asignada.')
           return
         }
+        const normalizedCriteria = (realRubric.criteria ?? []).map((criterion: {
+          id: string
+          name: string
+          description?: string
+          weight: number
+          performanceLevels?: RawPerformanceLevel[]
+        }) => {
+          const levels = normalizeLevels(criterion.performanceLevels ?? [])
+
+          return {
+            id: criterion.id,
+            name: criterion.name,
+            description: criterion.description ?? '',
+            weight: criterion.weight,
+            maxScore: levels.length > 0 ? Math.max(...levels.map((level) => level.score)) : 5,
+            rubricId: realRubric.id,
+            levels: levels.map((level) => ({
+              id: level.id,
+              name: level.name,
+              score: level.score,
+              description: level.description,
+            })),
+          }
+        })
+
         setRubric({
           id: realRubric.id,
           name: realRubric.name,
@@ -106,26 +124,7 @@ export function EvaluationFormPage() {
           isActive: true,
           isTemplate: false,
           createdAt: realRubric.createdAt ?? '',
-          criteria: (realRubric.criteria ?? []).map((criterion: {
-            id: string
-            name: string
-            description?: string
-            weight: number
-            performanceLevels?: RawPerformanceLevel[]
-          }) => ({
-            id: criterion.id,
-            name: criterion.name,
-            description: criterion.description ?? '',
-            weight: criterion.weight,
-            maxScore: 5,
-            rubricId: realRubric.id,
-            levels: normalizeLevels(criterion.performanceLevels ?? []).map((level) => ({
-              id: level.id,
-              name: level.name,
-              score: level.score,
-              description: level.description,
-            })),
-          })),
+          criteria: normalizedCriteria,
         })
       })
       .catch((err: unknown) => {

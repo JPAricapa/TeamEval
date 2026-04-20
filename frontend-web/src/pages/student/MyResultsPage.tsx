@@ -27,9 +27,9 @@ type StudentResult = {
 
 function scoreColor(s: number | null) {
   if (s === null) return 'text-gray-400 bg-gray-100'
-  if (s >= 3.5) return 'text-emerald-700 bg-emerald-50'
-  if (s >= 2.5) return 'text-blue-700 bg-blue-50'
-  if (s >= 1.5) return 'text-amber-700 bg-amber-50'
+  if (s >= 4.5) return 'text-emerald-700 bg-emerald-50'
+  if (s >= 3.5) return 'text-blue-700 bg-blue-50'
+  if (s >= 2.5) return 'text-amber-700 bg-amber-50'
   return 'text-red-700 bg-red-50'
 }
 
@@ -118,7 +118,7 @@ export function MyResultsPage() {
                   <p className={`text-4xl font-bold ${scoreColor(result.finalScore).split(' ')[0]}`}>
                     {result.finalScore.toFixed(2)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">sobre 4.0</p>
+                  <p className="text-xs text-gray-400 mt-1">sobre 5.0</p>
                 </div>
 
 

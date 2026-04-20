@@ -6,6 +6,41 @@ import { Badge } from '@/components/ui/badge'
 import { rubricsApi } from '@/services/api'
 import type { Rubric } from '@/types'
 
+const defaultLevelContent: Record<number, { name: string; description: string }> = {
+  5: { name: 'Excelente', description: 'Desempeño sobresaliente y consistente en este criterio.' },
+  4: { name: 'Bueno', description: 'Cumple muy bien este criterio en la mayoría de situaciones.' },
+  3: { name: 'Aceptable', description: 'Cumple este criterio de forma suficiente, con aspectos por mejorar.' },
+  2: { name: 'Bajo', description: 'Cumple este criterio de forma limitada y requiere mejora.' },
+  1: { name: 'Muy bajo', description: 'No alcanza el nivel esperado en este criterio.' },
+}
+
+function normalizeRubricLevels(levels: Rubric['criteria'][number]['levels'] = []) {
+  const levelsByScore = new Map(levels.map((level) => [level.score, level]))
+
+  return [5, 4, 3, 2, 1].map((score) => {
+    const existing = levelsByScore.get(score)
+    if (existing) return existing
+
+    return {
+      id: `fallback-${score}`,
+      score,
+      name: defaultLevelContent[score].name,
+      description: defaultLevelContent[score].description,
+    }
+  })
+}
+
+function normalizeRubrics(rawRubrics: Rubric[]) {
+  return rawRubrics.map((rubric) => ({
+    ...rubric,
+    criteria: (rubric.criteria ?? []).map((criterion) => ({
+      ...criterion,
+      maxScore: 5,
+      levels: normalizeRubricLevels(criterion.levels ?? []),
+    })),
+  }))
+}
+
 const MOCK_RUBRICS: Rubric[] = [
   {
     id: 'r-peer', name: 'Evaluación de Trabajo en Equipo - Por Pares', description: 'Esta rúbrica evalúa las habilidades de trabajo en equipo a partir del desempeño de un integrante según la perspectiva de sus compañeros.', version: 1, isActive: true, isTemplate: true, createdAt: new Date().toISOString(),
@@ -79,6 +114,7 @@ const MOCK_RUBRICS: Rubric[] = [
 ]
 
 const scoreColors: Record<number, string> = {
+  5: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   4: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   3: 'bg-blue-100 text-blue-800 border-blue-200',
   2: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -120,9 +156,9 @@ export function RubricsPage() {
             levels: (c.levels?.length ? c.levels : (c.performanceLevels ?? [])),
           })),
         })) as Rubric[]
-        setRubrics(normalized.length ? normalized : MOCK_RUBRICS)
+        setRubrics(normalized.length ? normalizeRubrics(normalized) : normalizeRubrics(MOCK_RUBRICS))
       })
-      .catch(() => setRubrics(MOCK_RUBRICS))
+      .catch(() => setRubrics(normalizeRubrics(MOCK_RUBRICS)))
       .finally(() => setLoading(false))
   }, [])
 
@@ -188,7 +224,7 @@ export function RubricsPage() {
                         <p className="text-sm text-gray-500 mt-1">{rubric.description}</p>
                         <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                           <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5" />{totalCriteria} criterios</span>
-                          <span>Escala: 1 – 4 puntos</span>
+                          <span>Escala: 1 – 5 puntos</span>
                         </div>
                       </div>
                     </div>

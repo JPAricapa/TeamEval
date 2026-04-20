@@ -19,7 +19,12 @@ router.use(authenticate);
 type RubricSummary = {
   id: string;
   name: string;
-  criteria?: Array<{ id: string; name: string; weight: number }>;
+  criteria?: Array<{
+    id: string;
+    name: string;
+    weight: number;
+    performanceLevels?: Array<{ score: number }>;
+  }>;
 };
 
 async function resolveEvaluationRubric(
@@ -461,7 +466,7 @@ router.post('/:id/submit', allRoles,
     param('id').isUUID(),
     body('scores').isArray({ min: 1 }).withMessage('Se requieren puntajes'),
     body('scores.*.criteriaId').isUUID(),
-    body('scores.*.score').isFloat({ min: 0 }),
+    body('scores.*.score').isFloat({ min: 1, max: 5 }),
     body('scores.*.comment').optional().trim(),
     body('generalComment').optional().trim()
   ],
@@ -473,9 +478,9 @@ router.post('/:id/submit', allRoles,
         include: {
           process: {
             include: {
-              selfRubric: { include: { criteria: true } },
-              peerRubric: { include: { criteria: true } },
-              teacherRubric: { include: { criteria: true } },
+              selfRubric: { include: { criteria: { include: { performanceLevels: true } } } },
+              peerRubric: { include: { criteria: { include: { performanceLevels: true } } } },
+              teacherRubric: { include: { criteria: { include: { performanceLevels: true } } } },
             }
           }
         }
@@ -493,7 +498,7 @@ router.post('/:id/submit', allRoles,
       }
 
       // Verificar que se evaluaron todos los criterios
-      const rubric = await resolveEvaluationRubric(evaluation.process, evaluation.type, false);
+      const rubric = await resolveEvaluationRubric(evaluation.process, evaluation.type, true);
       if (!rubric) {
         throw new AppError('No hay una rúbrica configurada para este tipo de evaluación.', 400);
       }
@@ -504,6 +509,26 @@ router.post('/:id/submit', allRoles,
 
       if (missing.length > 0) {
         throw new AppError(`Faltan criterios por evaluar: ${missing.length} criterio(s)`, 400);
+      }
+
+      const invalidScores = req.body.scores.filter((submittedScore: { criteriaId: string; score: number }) => {
+        const criterion = rubric.criteria?.find((item) => item.id === submittedScore.criteriaId);
+        if (!criterion) return true;
+
+        const performanceLevels =
+          'performanceLevels' in criterion && Array.isArray(criterion.performanceLevels)
+            ? criterion.performanceLevels
+            : [];
+        const allowedScores = performanceLevels.map((level: { score: number }) => level.score);
+        if (allowedScores.length === 0) {
+          return submittedScore.score < 1 || submittedScore.score > 5;
+        }
+
+        return !allowedScores.includes(submittedScore.score);
+      });
+
+      if (invalidScores.length > 0) {
+        throw new AppError('Uno o más puntajes no corresponden a la escala configurada para la rúbrica.', 400);
       }
 
       // Guardar evaluación en transacción

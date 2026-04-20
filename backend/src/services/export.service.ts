@@ -70,8 +70,9 @@ export class ExportService {
       // Color por nota
       const finalScore = result.finalScore;
       if (finalScore !== null) {
-        const color = finalScore >= 4.0 ? 'FF4CAF50'
-          : finalScore >= 3.0 ? 'FFFF9800'
+        const color = finalScore >= 4.5 ? 'FF4CAF50'
+          : finalScore >= 3.5 ? 'FF1565C0'
+          : finalScore >= 2.5 ? 'FFFF9800'
           : 'FFF44336';
         sheet1.getCell(`G${row}`).fill = {
           type: 'pattern', pattern: 'solid', fgColor: { argb: color }

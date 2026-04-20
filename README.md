@@ -64,7 +64,7 @@ El seed actual crea un usuario administrador/docente con contraseña `TeamEval20
 - Decisiones del Equipo
 - Registros de Control
 
-Escala: 4 (Proficiente) → 3 (Aceptable) → 2 (Principiante) → 1 (Necesita mejorar)
+Escala: 5 (Excelente) → 4 (Proficiente) → 3 (Aceptable) → 2 (Principiante) → 1 (Necesita mejorar)
 
 ---
 
