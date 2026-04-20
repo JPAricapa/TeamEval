@@ -19,6 +19,10 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function normalizeGroupName(name: string) {
+  return name.trim().replace(/\s+/g, ' ');
+}
+
 // GET /groups?courseId=...
 router.get('/', allRoles,
   async (req: Request, res: Response, next: NextFunction) => {
@@ -80,7 +84,27 @@ router.post('/', teacherOrAdmin,
         throw new AppError('No puedes crear grupos en un curso que no te pertenece', 403);
       }
 
-      const group = await prisma.group.create({ data: req.body });
+      const normalizedName = normalizeGroupName(req.body.name);
+      const existingGroup = await prisma.group.findFirst({
+        where: {
+          courseId: req.body.courseId,
+          name: {
+            equals: normalizedName,
+            mode: 'insensitive'
+          }
+        }
+      });
+
+      if (existingGroup) {
+        throw new AppError('Ya existe un grupo con ese nombre en este curso', 409);
+      }
+
+      const group = await prisma.group.create({
+        data: {
+          ...req.body,
+          name: normalizedName
+        }
+      });
       sendCreated(res, group, 'Grupo creado');
     } catch (error) { next(error); }
   }

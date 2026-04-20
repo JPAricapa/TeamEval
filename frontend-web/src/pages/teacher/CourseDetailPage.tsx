@@ -32,6 +32,7 @@ type CourseDetail = {
 }
 
 type StudentForm = {
+  id: string
   email: string
   firstName: string
   lastName: string
@@ -39,13 +40,17 @@ type StudentForm = {
 }
 
 const EMPTY_STUDENT_FORM: StudentForm = {
+  id: '',
   email: '',
   firstName: '',
   lastName: '',
   nationalId: '',
 }
 
-const createEmptyStudent = (): StudentForm => ({ ...EMPTY_STUDENT_FORM })
+const createEmptyStudent = (): StudentForm => ({
+  ...EMPTY_STUDENT_FORM,
+  id: crypto.randomUUID(),
+})
 
 function getAutomaticPeriodLabel(date = new Date()) {
   const year = date.getFullYear()
@@ -224,9 +229,13 @@ export function CourseDetailPage() {
     }
   }
 
-  const handleNewGroupStudentChange = (index: number, key: keyof StudentForm, value: string) => {
-    setNewGroupStudents((prev) => prev.map((student, currentIndex) =>
-      currentIndex === index ? { ...student, [key]: value } : student
+  const handleNewGroupStudentChange = (
+    studentId: string,
+    key: Exclude<keyof StudentForm, 'id'>,
+    value: string
+  ) => {
+    setNewGroupStudents((prev) => prev.map((student) =>
+      student.id === studentId ? { ...student, [key]: value } : student
     ))
   }
 
@@ -234,8 +243,8 @@ export function CourseDetailPage() {
     setNewGroupStudents((prev) => [...prev, createEmptyStudent()])
   }
 
-  const removeStudentRow = (index: number) => {
-    setNewGroupStudents((prev) => prev.filter((_, currentIndex) => currentIndex !== index))
+  const removeStudentRow = (studentId: string) => {
+    setNewGroupStudents((prev) => prev.filter((student) => student.id !== studentId))
   }
 
   const openAddMember = (groupId: string) => {
@@ -713,14 +722,14 @@ export function CourseDetailPage() {
 
               <div className="space-y-4">
                 {newGroupStudents.map((student, index) => (
-                  <div key={index} className="rounded-xl border border-gray-200 p-4">
+                  <div key={student.id} className="rounded-xl border border-gray-200 p-4">
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-gray-900">Integrante {index + 1}</p>
                       {newGroupStudents.length > 1 && (
                         <button
                           type="button"
                           className="text-xs font-medium text-red-600 hover:underline"
-                          onClick={() => removeStudentRow(index)}
+                          onClick={() => removeStudentRow(student.id)}
                           disabled={creatingGroup}
                         >
                           Quitar
@@ -729,24 +738,36 @@ export function CourseDetailPage() {
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                       <Input
+                        id={`group-student-${student.id}-first-name`}
+                        name={`group-student-${student.id}-first-name`}
+                        autoComplete="off"
                         placeholder="Nombres"
                         value={student.firstName}
-                        onChange={(e) => handleNewGroupStudentChange(index, 'firstName', e.target.value)}
+                        onChange={(e) => handleNewGroupStudentChange(student.id, 'firstName', e.target.value)}
                       />
                       <Input
+                        id={`group-student-${student.id}-last-name`}
+                        name={`group-student-${student.id}-last-name`}
+                        autoComplete="off"
                         placeholder="Apellidos"
                         value={student.lastName}
-                        onChange={(e) => handleNewGroupStudentChange(index, 'lastName', e.target.value)}
+                        onChange={(e) => handleNewGroupStudentChange(student.id, 'lastName', e.target.value)}
                       />
                       <Input
+                        id={`group-student-${student.id}-email`}
+                        name={`group-student-${student.id}-email`}
+                        autoComplete="off"
                         placeholder="Correo"
                         value={student.email}
-                        onChange={(e) => handleNewGroupStudentChange(index, 'email', e.target.value)}
+                        onChange={(e) => handleNewGroupStudentChange(student.id, 'email', e.target.value)}
                       />
                       <Input
+                        id={`group-student-${student.id}-national-id`}
+                        name={`group-student-${student.id}-national-id`}
+                        autoComplete="off"
                         placeholder="Cédula"
                         value={student.nationalId}
-                        onChange={(e) => handleNewGroupStudentChange(index, 'nationalId', e.target.value)}
+                        onChange={(e) => handleNewGroupStudentChange(student.id, 'nationalId', e.target.value)}
                       />
                     </div>
                   </div>

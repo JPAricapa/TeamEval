@@ -19,6 +19,10 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function normalizeGroupName(name: string) {
+  return name.trim().replace(/\s+/g, ' ');
+}
+
 // GET /users - Listar usuarios (admin)
 router.get(
   '/',
@@ -223,11 +227,12 @@ router.post(
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { courseId, groupName, students } = req.body as {
+      const { courseId, students } = req.body as {
         courseId: string;
         groupName: string;
         students: Array<{ firstName: string; lastName: string; email: string; nationalId: string }>;
       };
+      const groupName = normalizeGroupName(req.body.groupName);
 
       // Verificar que el curso existe y que el docente es dueño (admin ignora).
       const course = await prisma.course.findUnique({ where: { id: courseId } });
@@ -238,7 +243,13 @@ router.post(
 
       // Obtener o crear el grupo por (courseId, name)
       let group = await prisma.group.findFirst({
-        where: { courseId, name: groupName }
+        where: {
+          courseId,
+          name: {
+            equals: groupName,
+            mode: 'insensitive'
+          }
+        }
       });
       if (!group) {
         group = await prisma.group.create({
