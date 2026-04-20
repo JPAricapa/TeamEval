@@ -90,49 +90,71 @@ Ver documentación completa: `docs/Documentacion_Tecnica_TeamEval.docx`
 
 ---
 
-## Deploy En Railway
+## Deploy Gratis
 
 Estructura recomendada:
 
 ```text
-Proyecto TeamEval
-├── Servicio "backend"   → Express API
-├── Servicio "frontend"  → React/Vite
-└── Servicio "database"  → PostgreSQL
+Frontend → Vercel
+Backend  → Render
+DB       → Supabase (PostgreSQL)
 ```
 
-### Backend
+### Supabase
+
+- Crear un proyecto nuevo en Supabase.
+- Ir a `Connect` y copiar la cadena **Supavisor Session pooler** para Prisma.
+- Esa cadena termina en `:5432` y se usa como `DATABASE_URL`.
+
+Referencia oficial:
+
+- https://supabase.com/docs/guides/database/prisma
+- https://supabase.com/docs/guides/database
+
+### Backend En Render
 
 - Root directory: `backend`
-- Build command: `npm install && npm run prisma:generate && npm run build`
-- Start command: `npm run start:prod`
+- Build command: `npm install --include=dev && npm run prisma:generate && npm run build`
+- Start command: `npm run start:render`
 
 Variables mínimas:
 
 ```bash
 NODE_ENV=production
-DATABASE_URL=<referencia a DATABASE_URL del servicio PostgreSQL de Railway>
+DATABASE_URL=<cadena Supavisor Session pooler de Supabase>
 JWT_SECRET=<secreto-largo-y-seguro>
 JWT_REFRESH_SECRET=<secreto-largo-y-seguro>
 JWT_EXPIRES_IN=1h
 JWT_REFRESH_EXPIRES_IN=7d
-CORS_ORIGIN=https://frontend-production.up.railway.app
-FRONTEND_URL=https://frontend-production.up.railway.app
+CORS_ORIGIN=https://tu-frontend.vercel.app
+FRONTEND_URL=https://tu-frontend.vercel.app
 ```
 
-### Frontend
+Notas:
+
+- `start:render` corre migraciones y seed al arrancar.
+- El seed es idempotente y deja creado el usuario administrador base.
+
+Referencia oficial:
+
+- https://render.com/docs/web-services
+- https://render.com/docs/free
+
+### Frontend En Vercel
 
 - Root directory: `frontend-web`
-- Build command: `npm install && npm run build`
-- Start command: `npm run preview -- --host 0.0.0.0 --port $PORT`
+- Build command: `npm run build`
+- Output directory: `dist`
 
-Variables mínimas:
+Variable mínima:
 
 ```bash
-VITE_API_URL=https://backend-production.up.railway.app/api/v1
+VITE_API_URL=https://tu-backend.onrender.com/api/v1
 ```
 
-### Base de datos
+El frontend usa React Router en modo SPA, por eso incluye `vercel.json` con rewrite a `index.html`.
 
-- Agrega PostgreSQL desde Railway al mismo proyecto.
-- Enlaza `DATABASE_URL` del backend con la variable que Railway expone para Postgres.
+Referencia oficial:
+
+- https://vercel.com/docs/frameworks/vite
+- https://vercel.com/docs/rewrites

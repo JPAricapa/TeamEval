@@ -12,6 +12,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
     "start:prod": "npm run prisma:generate && npm run prisma:migrate:deploy && npm run prisma:seed && node dist/index.js",
+    "start:render": "npm run prisma:migrate:deploy && npm run prisma:seed && node dist/index.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch"
   },
