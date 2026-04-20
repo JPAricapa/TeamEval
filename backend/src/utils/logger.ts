@@ -4,9 +4,14 @@
  */
 
 import winston from 'winston';
+import { mkdirSync } from 'fs';
 import path from 'path';
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
+const logsDir = path.join('logs');
+
+// Render y otros despliegues no incluyen directorios vacíos ignorados por git.
+mkdirSync(logsDir, { recursive: true });
 
 // Formato personalizado para logs
 const logFormat = printf(({ level, message, timestamp, stack }) => {
@@ -32,14 +37,14 @@ export const logger = winston.createLogger({
     }),
     // Archivo de logs (errores)
     new winston.transports.File({
-      filename: path.join('logs', 'error.log'),
+      filename: path.join(logsDir, 'error.log'),
       level: 'error',
       maxsize: 5242880, // 5MB
       maxFiles: 5
     }),
     // Archivo de logs (todos)
     new winston.transports.File({
-      filename: path.join('logs', 'combined.log'),
+      filename: path.join(logsDir, 'combined.log'),
       maxsize: 5242880,
       maxFiles: 5
     })
