@@ -28,7 +28,13 @@ router.get('/', allRoles,
         },
         include: {
           creator: { select: { firstName: true, lastName: true } },
-          _count: { select: { criteria: true } }
+          criteria: {
+            where: { isActive: true },
+            orderBy: { order: 'asc' },
+            include: {
+              performanceLevels: { orderBy: { order: 'asc' } }
+            }
+          }
         },
         orderBy: { createdAt: 'desc' }
       });

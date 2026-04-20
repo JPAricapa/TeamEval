@@ -4,10 +4,11 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { param, body } from 'express-validator';
-import { authenticate, teacherOrAdmin } from '../middleware/auth.middleware';
+import { authenticate, teacherOrAdmin, allRoles } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { sendSuccess } from '../utils/response';
 import { consolidationService } from '../services/consolidation.service';
+import { prisma } from '../utils/prisma';
 
 const router = Router();
 router.use(authenticate);
@@ -45,6 +46,46 @@ router.get('/process/:processId/results', teacherOrAdmin,
     try {
       const results = await consolidationService.getProcessResults(req.params.processId);
       sendSuccess(res, results, 'Resultados obtenidos');
+    } catch (error) { next(error); }
+  }
+);
+
+// GET /consolidation/my-results - Resultados propios del estudiante autenticado
+router.get('/my-results', allRoles,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const results = await prisma.consolidatedResult.findMany({
+        where: { studentId: req.user!.id },
+        include: {
+          process: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              selfWeight: true,
+              peerWeight: true,
+              teacherWeight: true,
+              course: { select: { name: true, code: true } }
+            }
+          },
+          team: { select: { name: true } }
+        },
+        orderBy: { calculatedAt: 'desc' }
+      });
+
+      const mapped = results.map(r => ({
+        id: r.id,
+        selfScore: r.selfScore,
+        peerScore: r.peerScore,
+        teacherScore: r.teacherScore,
+        finalScore: r.finalScore,
+        criteriaScores: r.criteriaScores ? JSON.parse(r.criteriaScores) : null,
+        calculatedAt: r.calculatedAt,
+        process: r.process,
+        team: r.team,
+      }));
+
+      sendSuccess(res, mapped, 'Resultados obtenidos');
     } catch (error) { next(error); }
   }
 );

@@ -4,14 +4,12 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, param, query } from 'express-validator';
-import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../utils/prisma';
 import { authenticate, adminOnly, teacherOrAdmin } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { sendSuccess, sendCreated, sendNotFound } from '../utils/response';
 import { AppError } from '../middleware/errorHandler';
-import { sendMail, buildInvitationEmail } from '../utils/mailer';
 import { UserRole } from '../constants/enums';
 
 const router = Router();
@@ -54,14 +52,50 @@ router.get(
           take: limit,
           select: {
             id: true, email: true, firstName: true, lastName: true,
-            role: true, isActive: true, createdAt: true, institutionId: true
+            role: true, isActive: true, createdAt: true, institutionId: true,
+            studentGroups: {
+              where: {
+                isActive: true,
+                group: { isActive: true }
+              },
+              take: 1,
+              select: {
+                group: {
+                  select: {
+                    id: true,
+                    name: true,
+                    course: { select: { id: true, name: true, code: true } }
+                  }
+                }
+              }
+            },
+            teamMemberships: {
+              where: { isActive: true },
+              take: 1,
+              select: {
+                team: {
+                  select: { id: true, name: true }
+                }
+              }
+            }
           },
           orderBy: { createdAt: 'desc' }
         }),
         prisma.user.count({ where })
       ]);
 
-      sendSuccess(res, users, 'Usuarios obtenidos', 200, {
+      const normalizedUsers = users.map(({ studentGroups, teamMemberships, ...user }) => {
+        const group = studentGroups[0]?.group;
+        return {
+          ...user,
+          groupName: group?.name ?? null,
+          courseName: group?.course?.name ?? null,
+          courseCode: group?.course?.code ?? null,
+          teamName: teamMemberships[0]?.team.name ?? null
+        };
+      });
+
+      sendSuccess(res, normalizedUsers, 'Usuarios obtenidos', 200, {
         total, page, limit, totalPages: Math.ceil(total / limit)
       });
     } catch (error) { next(error); }
@@ -106,8 +140,8 @@ router.get(
   }
 );
 
-// POST /users - Crear usuario e invitar por correo (admin)
-// No requiere contraseña: el usuario la establece al aceptar la invitación.
+// POST /users - Crear usuario (admin)
+// La contraseña inicial es la cédula y el usuario queda activo.
 router.post(
   '/',
   adminOnly,
@@ -115,55 +149,46 @@ router.post(
     body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
     body('firstName').trim().notEmpty().withMessage('Nombre requerido'),
     body('lastName').trim().notEmpty().withMessage('Apellido requerido'),
+    body('nationalId').trim().notEmpty().withMessage('Cédula requerida'),
     body('role').isIn(Object.values(UserRole)).withMessage('Rol inválido'),
-    body('institutionId').optional().isUUID()
   ],
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { email, firstName, lastName, role, institutionId } = req.body;
+      const { email, firstName, lastName, nationalId, role } = req.body;
 
       // Verificar que el email no exista
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) throw new AppError('El correo ya está registrado', 409);
 
-      // Contraseña provisional aleatoria — el usuario NUNCA la verá
-      const placeholderHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12);
+      const existingNationalId = await prisma.user.findUnique({ where: { nationalId } });
+      if (existingNationalId) throw new AppError('La cédula ya está registrada', 409);
 
-      // Crear usuario inactivo hasta que acepte la invitación
+      const institutionId = req.user?.institutionId;
+      if (!institutionId) {
+        throw new AppError('No se pudo determinar la institución del administrador', 400);
+      }
+
+      const passwordHash = await bcrypt.hash(nationalId, 12);
+
       const user = await prisma.user.create({
         data: {
-          email, passwordHash: placeholderHash,
-          firstName, lastName, role, institutionId,
-          isActive: false   // se activa al aceptar la invitación
+          email,
+          nationalId,
+          passwordHash,
+          firstName,
+          lastName,
+          role,
+          institutionId,
+          isActive: true
         },
         select: {
           id: true, email: true, firstName: true, lastName: true,
-          role: true, isActive: true, createdAt: true
+          role: true, isActive: true, createdAt: true, institutionId: true
         }
       });
 
-      // Generar token de invitación (válido 7 días)
-      const plainToken = crypto.randomBytes(32).toString('hex');
-      const tokenHash  = crypto.createHash('sha256').update(plainToken).digest('hex');
-      const expiresAt  = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-      await prisma.userInvitation.create({
-        data: { userId: user.id, tokenHash, expiresAt }
-      });
-
-      // Enviar correo de invitación
-      const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-      const inviteUrl   = `${frontendUrl}/accept-invitation?token=${plainToken}`;
-      const adminName   = `${req.user!.firstName} ${req.user!.lastName}`;
-
-      await sendMail({
-        to: email,
-        subject: `${adminName} te invitó a TeamEval — Activa tu cuenta`,
-        html: buildInvitationEmail(inviteUrl, firstName, adminName, role)
-      });
-
-      sendCreated(res, user, `Invitación enviada a ${email}`);
+      sendCreated(res, user, `Usuario creado exitosamente: ${email}`);
     } catch (error) { next(error); }
   }
 );
@@ -293,6 +318,12 @@ router.patch(
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        select: { role: true }
+      });
+      if (!targetUser) return sendNotFound(res, 'Usuario no encontrado');
+
       // Solo admin puede editar otros usuarios; usuarios pueden editarse a sí mismos
       if (req.user!.role !== UserRole.ADMIN && req.user!.id !== req.params.id) {
         throw new AppError('Sin permisos para editar este usuario', 403);
@@ -304,6 +335,9 @@ router.patch(
       if (lastName !== undefined) updateData.lastName = lastName;
       // Solo admins pueden cambiar isActive
       if (isActive !== undefined && req.user!.role === UserRole.ADMIN) {
+        if (targetUser.role === UserRole.ADMIN) {
+          throw new AppError('El docente principal no puede cambiar su estado', 400);
+        }
         updateData.isActive = isActive;
       }
 
@@ -312,11 +346,44 @@ router.patch(
         data: updateData,
         select: {
           id: true, email: true, firstName: true, lastName: true,
-          role: true, isActive: true, updatedAt: true
+          role: true, isActive: true, updatedAt: true,
+          studentGroups: {
+            where: {
+              isActive: true,
+              group: { isActive: true }
+            },
+            take: 1,
+            select: {
+              group: {
+                select: {
+                  id: true,
+                  name: true,
+                  course: { select: { id: true, name: true, code: true } }
+                }
+              }
+            }
+          },
+          teamMemberships: {
+            where: { isActive: true },
+            take: 1,
+            select: {
+              team: {
+                select: { id: true, name: true }
+              }
+            }
+          }
         }
       });
 
-      sendSuccess(res, user, 'Usuario actualizado');
+      const { studentGroups, teamMemberships, ...normalizedUser } = user;
+      const group = studentGroups[0]?.group;
+      sendSuccess(res, {
+        ...normalizedUser,
+        groupName: group?.name ?? null,
+        courseName: group?.course?.name ?? null,
+        courseCode: group?.course?.code ?? null,
+        teamName: teamMemberships[0]?.team.name ?? null
+      }, 'Usuario actualizado');
     } catch (error) { next(error); }
   }
 );
