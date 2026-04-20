@@ -11,7 +11,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 
 // Rutas
 import authRoutes from './routes/auth.routes';
@@ -33,11 +33,11 @@ import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 import { prisma } from './utils/prisma';
 
-// Cargar variables de entorno
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Render expone la app detrás de un proxy; esto evita fallos con express-rate-limit.
+app.set('trust proxy', 1);
 
 // ============================================================
 // MIDDLEWARE GLOBAL
