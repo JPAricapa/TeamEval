@@ -163,6 +163,7 @@ export const usersApi = {
   getById: (id: string) => api.get(`/users/${id}`),
   create: (data: object) => api.post('/users', data),
   update: (id: string, data: object) => api.patch(`/users/${id}`, data),
+  delete: (id: string) => api.delete(`/users/${id}`),
   bulkImportStudents: (data: {
     courseId: string
     groupName: string

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Plus, UserCheck, UserX, Loader2, BadgePlus, IdCard, MoreHorizontal } from 'lucide-react'
+import { Search, Plus, UserCheck, UserX, Loader2, BadgePlus, IdCard, MoreHorizontal, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -59,6 +59,7 @@ export function UsersPage() {
   const [formError, setFormError] = useState('')
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
   const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null)
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
 
   useEffect(() => {
     usersApi.getAll({ limit: 100 })
@@ -122,6 +123,28 @@ export function UsersPage() {
       setError(msg ?? 'No se pudo actualizar el estado del usuario.')
     } finally {
       setUpdatingUserId(null)
+    }
+  }
+
+  const handleDeleteUser = async (user: User) => {
+    const confirmed = window.confirm(
+      `¿Seguro que deseas eliminar a ${user.firstName} ${user.lastName}? Esta acción no se puede deshacer.`
+    )
+
+    if (!confirmed) return
+
+    setDeletingUserId(user.id)
+    setError('')
+    setOpenStatusMenuId(null)
+
+    try {
+      await usersApi.delete(user.id)
+      setUsers((prev) => prev.filter((item) => item.id !== user.id))
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(msg ?? 'No se pudo eliminar el usuario.')
+    } finally {
+      setDeletingUserId(null)
     }
   }
 
@@ -195,7 +218,7 @@ export function UsersPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-y border-gray-100">
                   <tr>
-                    {['Usuario', 'Correo electrónico', 'Rol', 'Estado', 'Curso / Grupo'].map((h) => (
+                    {['Usuario', 'Correo electrónico', 'Rol', 'Estado', 'Curso / Grupo', 'Acciones'].map((h) => (
                       <th key={h} className="text-left font-medium text-gray-500 px-6 py-3">{h}</th>
                     ))}
                   </tr>
@@ -268,6 +291,27 @@ export function UsersPage() {
                           )
                         ) : (
                           <span className="text-gray-400">No aplica</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.role === 'STUDENT' ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-2 text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteUser(user)}
+                            disabled={deletingUserId === user.id}
+                          >
+                            {deletingUserId === user.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                            Eliminar
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-gray-400">No disponible</span>
                         )}
                       </td>
                     </tr>

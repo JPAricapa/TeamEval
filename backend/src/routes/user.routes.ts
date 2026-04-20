@@ -434,4 +434,77 @@ router.patch(
   }
 );
 
+// DELETE /users/:id - Eliminar usuario (admin)
+router.delete(
+  '/:id',
+  adminOnly,
+  [param('id').isUUID()],
+  validate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        select: {
+          id: true,
+          role: true,
+          firstName: true,
+          lastName: true,
+          teacherCourses: { select: { id: true }, take: 1 },
+          rubrics: { select: { id: true }, take: 1 },
+          evaluationsGiven: { select: { id: true }, take: 1 },
+          evaluationsReceived: { select: { id: true }, take: 1 }
+        }
+      });
+
+      if (!user) return sendNotFound(res, 'Usuario no encontrado');
+
+      if (user.role === UserRole.ADMIN) {
+        throw new AppError('No se puede eliminar un usuario administrador', 400);
+      }
+
+      if (user.teacherCourses.length > 0) {
+        throw new AppError('No se puede eliminar un docente que tiene cursos asignados', 400);
+      }
+
+      if (user.rubrics.length > 0) {
+        throw new AppError('No se puede eliminar un usuario que creó rúbricas', 400);
+      }
+
+      if (user.evaluationsGiven.length > 0 || user.evaluationsReceived.length > 0) {
+        throw new AppError('No se puede eliminar un estudiante con evaluaciones registradas', 400);
+      }
+
+      const consolidatedResultsCount = await prisma.consolidatedResult.count({
+        where: { studentId: user.id }
+      });
+
+      if (consolidatedResultsCount > 0) {
+        throw new AppError('No se puede eliminar un estudiante con resultados consolidados', 400);
+      }
+
+      await prisma.$transaction([
+        prisma.auditLog.updateMany({
+          where: { userId: user.id },
+          data: { userId: null }
+        }),
+        prisma.teamMember.deleteMany({
+          where: { userId: user.id }
+        }),
+        prisma.groupMember.deleteMany({
+          where: { userId: user.id }
+        }),
+        prisma.user.delete({
+          where: { id: user.id }
+        })
+      ]);
+
+      sendSuccess(
+        res,
+        null,
+        `Usuario eliminado: ${user.firstName} ${user.lastName}`
+      );
+    } catch (error) { next(error); }
+  }
+);
+
 export default router;
