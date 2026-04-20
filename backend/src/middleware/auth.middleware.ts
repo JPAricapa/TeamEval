@@ -66,7 +66,7 @@ export const authenticate = async (
     req.user = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as UserRole,
       institutionId: user.institutionId ?? undefined
     };
 

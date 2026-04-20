@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -288,7 +288,10 @@ model Rubric {
   versions        Rubric[]        @relation("RubricVersions")
   criteria        RubricCriteria[]
   courseRubrics   CourseRubric[]
-  evaluationProcesses EvaluationProcess[]
+  legacyEvaluationProcesses  EvaluationProcess[] @relation("LegacyProcessRubric")
+  selfEvaluationProcesses    EvaluationProcess[] @relation("SelfRubric")
+  peerEvaluationProcesses    EvaluationProcess[] @relation("PeerRubric")
+  teacherEvaluationProcesses EvaluationProcess[] @relation("TeacherRubric")
 
   @@map("rubrics")
 }
@@ -340,6 +343,7 @@ model CourseRubric {
   id          String    @id @default(uuid())
   courseId    String    @map("course_id")
   rubricId    String    @map("rubric_id")
+  evaluationType String? @map("evaluation_type")
   assignedAt  DateTime  @default(now()) @map("assigned_at")
 
   course  Course  @relation(fields: [courseId], references: [id])
@@ -356,7 +360,10 @@ model CourseRubric {
 model EvaluationProcess {
   id                    String          @id @default(uuid())
   courseId              String          @map("course_id")
-  rubricId              String          @map("rubric_id")
+  rubricId              String?         @map("rubric_id")
+  selfRubricId          String?         @map("self_rubric_id")
+  peerRubricId          String?         @map("peer_rubric_id")
+  teacherRubricId       String?         @map("teacher_rubric_id")
   name                  String
   description           String?
   status                String          @default("DRAFT")
@@ -373,7 +380,10 @@ model EvaluationProcess {
   updatedAt             DateTime        @updatedAt @map("updated_at")
 
   course        Course        @relation(fields: [courseId], references: [id])
-  rubric        Rubric        @relation(fields: [rubricId], references: [id])
+  legacyRubric  Rubric?       @relation("LegacyProcessRubric", fields: [rubricId], references: [id])
+  selfRubric    Rubric?       @relation("SelfRubric", fields: [selfRubricId], references: [id])
+  peerRubric    Rubric?       @relation("PeerRubric", fields: [peerRubricId], references: [id])
+  teacherRubric Rubric?       @relation("TeacherRubric", fields: [teacherRubricId], references: [id])
   evaluations   Evaluation[]
   results       ConsolidatedResult[]
 

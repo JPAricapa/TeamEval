@@ -71,7 +71,7 @@ export class AuthService {
     });
 
     // Generar tokens
-    return this.generateTokens(user);
+    return this.generateTokens({ ...user, role: user.role as UserRole });
   }
 
   /**
@@ -93,7 +93,7 @@ export class AuthService {
       throw new AppError('Credenciales inválidas', 401);
     }
 
-    return this.generateTokens(user);
+    return this.generateTokens({ ...user, role: user.role as UserRole });
   }
 
   /**
@@ -133,7 +133,7 @@ export class AuthService {
     });
 
     // Generar nuevos tokens
-    return this.generateTokens(storedToken.user);
+    return this.generateTokens({ ...storedToken.user, role: storedToken.user.role as UserRole });
   }
 
   /**
@@ -293,7 +293,7 @@ export class AuthService {
     });
 
     // Generar sesión automáticamente al activar la cuenta
-    return this.generateTokens(updatedUser);
+    return this.generateTokens({ ...updatedUser, role: updatedUser.role as UserRole });
   }
 
   /**

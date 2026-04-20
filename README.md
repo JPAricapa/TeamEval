@@ -17,7 +17,7 @@ cp .env.example .env
 
 npm run prisma:generate
 npm run prisma:migrate
-npm run prisma:seed        # Carga rúbricas de trabajo en equipo + datos de ejemplo
+npm run prisma:seed        # Carga rúbricas base + usuario administrador
 npm run dev                # http://localhost:3000
 ```
 
@@ -29,13 +29,11 @@ npm install
 npm run dev                # http://localhost:5173
 ```
 
-### 3. Credenciales de prueba (todas con contraseña `TeamEval2024!`)
+### 3. Seed inicial
 
-| Rol | Email |
-|-----|-------|
-| Admin | admin@teameval.edu.co |
-| Docente | docente@teameval.edu.co |
-| Estudiante | est1@teameval.edu.co |
+El seed actual crea un usuario administrador/docente con contraseña `TeamEval2024!`:
+
+- `jaldana@uniquindio.edu.co`
 
 ---
 
@@ -47,7 +45,7 @@ npm run dev                # http://localhost:5173
 | App móvil | Flutter (opcional, carpeta separada) |
 | Backend | Node.js 20 + Express + TypeScript |
 | ORM | Prisma 5.x |
-| Base de datos local | SQLite para desarrollo |
+| Base de datos | PostgreSQL |
 | Autenticación | JWT (Access 1h + Refresh 7d) |
 | Gráficas | Recharts |
 | Exportación | ExcelJS + PDFKit |
@@ -89,3 +87,52 @@ teameval-platform/
 - `GET  /api/v1/export/excel/:processId` — Exportar resultados
 
 Ver documentación completa: `docs/Documentacion_Tecnica_TeamEval.docx`
+
+---
+
+## Deploy En Railway
+
+Estructura recomendada:
+
+```text
+Proyecto TeamEval
+├── Servicio "backend"   → Express API
+├── Servicio "frontend"  → React/Vite
+└── Servicio "database"  → PostgreSQL
+```
+
+### Backend
+
+- Root directory: `backend`
+- Build command: `npm install && npm run prisma:generate && npm run build`
+- Start command: `npm run start:prod`
+
+Variables mínimas:
+
+```bash
+NODE_ENV=production
+DATABASE_URL=<referencia a DATABASE_URL del servicio PostgreSQL de Railway>
+JWT_SECRET=<secreto-largo-y-seguro>
+JWT_REFRESH_SECRET=<secreto-largo-y-seguro>
+JWT_EXPIRES_IN=1h
+JWT_REFRESH_EXPIRES_IN=7d
+CORS_ORIGIN=https://frontend-production.up.railway.app
+FRONTEND_URL=https://frontend-production.up.railway.app
+```
+
+### Frontend
+
+- Root directory: `frontend-web`
+- Build command: `npm install && npm run build`
+- Start command: `npm run preview -- --host 0.0.0.0 --port $PORT`
+
+Variables mínimas:
+
+```bash
+VITE_API_URL=https://backend-production.up.railway.app/api/v1
+```
+
+### Base de datos
+
+- Agrega PostgreSQL desde Railway al mismo proyecto.
+- Enlaza `DATABASE_URL` del backend con la variable que Railway expone para Postgres.

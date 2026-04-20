@@ -8,8 +8,10 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma db push",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "start:prod": "npm run prisma:generate && npm run prisma:migrate:deploy && npm run prisma:seed && node dist/index.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch"
   },
