@@ -10,6 +10,7 @@
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { EvaluationType, EvaluationStatus } from '../constants/enums';
+import { getAllProcessCriteria, getRubricForEvaluationType } from '../utils/rubricAssignment';
 
 export interface ConsolidationResult {
   studentId: string;
@@ -62,19 +63,13 @@ export class ConsolidationService {
     const process = await prisma.evaluationProcess.findUnique({
       where: { id: processId },
       include: {
-        rubric: {
-          include: { criteria: { where: { isActive: true } } }
-        }
+        selfRubric: { include: { criteria: { where: { isActive: true } } } },
+        peerRubric: { include: { criteria: { where: { isActive: true } } } },
+        teacherRubric: { include: { criteria: { where: { isActive: true } } } },
       }
     });
 
     if (!process) throw new AppError('Proceso no encontrado', 404);
-
-    const criteriaWithWeights = process.rubric.criteria.map((c) => ({
-      id: c.id,
-      name: c.name,
-      weight: c.weight
-    }));
 
     // Obtener evaluaciones completadas del estudiante
     const evaluations = await prisma.evaluation.findMany({
@@ -91,12 +86,28 @@ export class ConsolidationService {
     const peerEvals = evaluations.filter((e) => e.type === EvaluationType.PEER);
     const teacherEval = evaluations.find((e) => e.type === EvaluationType.TEACHER);
 
+    const selfCriteria = (getRubricForEvaluationType(process, EvaluationType.SELF)?.criteria ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      weight: c.weight
+    }));
+    const peerCriteria = (getRubricForEvaluationType(process, EvaluationType.PEER)?.criteria ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      weight: c.weight
+    }));
+    const teacherCriteria = (getRubricForEvaluationType(process, EvaluationType.TEACHER)?.criteria ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      weight: c.weight
+    }));
+
     const selfScore = selfEval
-      ? await this.calcEvaluationScore(selfEval.id, criteriaWithWeights)
+      ? await this.calcEvaluationScore(selfEval.id, selfCriteria)
       : null;
 
     const peerScores = await Promise.all(
-      peerEvals.map((e) => this.calcEvaluationScore(e.id, criteriaWithWeights))
+      peerEvals.map((e) => this.calcEvaluationScore(e.id, peerCriteria))
     );
     const validPeerScores = peerScores.filter((s): s is number => s !== null);
     const peerScore = validPeerScores.length > 0
@@ -104,7 +115,7 @@ export class ConsolidationService {
       : null;
 
     const teacherScore = teacherEval
-      ? await this.calcEvaluationScore(teacherEval.id, criteriaWithWeights)
+      ? await this.calcEvaluationScore(teacherEval.id, teacherCriteria)
       : null;
 
     // Calcular puntaje final ponderado
@@ -139,7 +150,7 @@ export class ConsolidationService {
 
     // Calcular scores por criterio (promedio de todas las evaluaciones)
     const criteriaScores: Record<string, number> = {};
-    for (const criterion of criteriaWithWeights) {
+    for (const criterion of getAllProcessCriteria(process)) {
       const allScores = evaluations
         .flatMap((e) => e.scores)
         .filter((s) => s.criteriaId === criterion.id)

@@ -8,6 +8,7 @@ import PDFDocument from 'pdfkit';
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { consolidationService } from './consolidation.service';
+import { getAllProcessCriteria } from '../utils/rubricAssignment';
 
 export class ExportService {
 
@@ -19,7 +20,9 @@ export class ExportService {
       where: { id: processId },
       include: {
         course: { select: { name: true, code: true } },
-        rubric: { include: { criteria: { where: { isActive: true } } } }
+        selfRubric: { include: { criteria: { where: { isActive: true } } } },
+        peerRubric: { include: { criteria: { where: { isActive: true } } } },
+        teacherRubric: { include: { criteria: { where: { isActive: true } } } },
       }
     });
 
@@ -83,7 +86,8 @@ export class ExportService {
     // Hoja 2: Detalle por criterio
     // --------------------------------------------------------
     const sheet2 = workbook.addWorksheet('Detalle por Criterio');
-    const headers = ['Estudiante', ...process.rubric.criteria.map((c) => c.name), 'Promedio'];
+    const criteria = getAllProcessCriteria(process);
+    const headers = ['Estudiante', ...criteria.map((c) => c.name), 'Promedio'];
     sheet2.getRow(1).values = headers;
     sheet2.getRow(1).font = { bold: true };
 
@@ -92,7 +96,7 @@ export class ExportService {
       const criteriaScores = result.criteriaScores as Record<string, number> | null;
       const rowValues = [
         result.student?.name ?? 'N/A',
-        ...process.rubric.criteria.map((c) =>
+        ...criteria.map((c) =>
           criteriaScores ? (criteriaScores[c.id] ?? 0).toFixed(2) : 'N/E'
         ),
         result.finalScore !== null ? result.finalScore.toFixed(2) : 'N/C'
@@ -139,7 +143,9 @@ export class ExportService {
       where: { id: processId },
       include: {
         course: { select: { name: true } },
-        rubric: { include: { criteria: { where: { isActive: true } } } }
+        selfRubric: { include: { criteria: { where: { isActive: true } } } },
+        peerRubric: { include: { criteria: { where: { isActive: true } } } },
+        teacherRubric: { include: { criteria: { where: { isActive: true } } } },
       }
     });
 
@@ -147,12 +153,13 @@ export class ExportService {
 
     const results = await consolidationService.getProcessResults(processId);
 
-    const criteriaHeaders = process.rubric.criteria.map((c) => `"${c.name}"`).join(',');
+    const criteria = getAllProcessCriteria(process);
+    const criteriaHeaders = criteria.map((c) => `"${c.name}"`).join(',');
     let csv = `Estudiante,Email,Equipo,Autoevaluación,Coevaluación,Docente,Nota Final,Índice Sobrevaloración,${criteriaHeaders}\n`;
 
     for (const result of results) {
       const criteriaScores = result.criteriaScores as Record<string, number> | null;
-      const criteriaValues = process.rubric.criteria
+      const criteriaValues = criteria
         .map((c) => criteriaScores ? criteriaScores[c.id]?.toFixed(2) ?? '' : '')
         .join(',');
 
@@ -180,7 +187,9 @@ export class ExportService {
       where: { id: processId },
       include: {
         course: { include: { teacher: { select: { firstName: true, lastName: true } } } },
-        rubric: { include: { criteria: true } }
+        selfRubric: true,
+        peerRubric: true,
+        teacherRubric: true,
       }
     });
 
@@ -202,10 +211,15 @@ export class ExportService {
       doc.fontSize(16)
         .text('Trabajo en Equipo', { align: 'center' });
       doc.moveDown();
+      const rubricSummary = [
+        process.selfRubric ? `Auto: ${process.selfRubric.name} v${process.selfRubric.version}` : null,
+        process.peerRubric ? `Pares: ${process.peerRubric.name} v${process.peerRubric.version}` : null,
+        process.teacherRubric ? `Docente: ${process.teacherRubric.name} v${process.teacherRubric.version}` : null,
+      ].filter((item): item is string => Boolean(item)).join(' | ');
       doc.fontSize(12).font('Helvetica')
         .text(`Curso: ${process.course.name}`, { align: 'center' })
         .text(`Proceso: ${process.name}`, { align: 'center' })
-        .text(`Rúbrica: ${process.rubric.name} v${process.rubric.version}`, { align: 'center' })
+        .text(`Rúbricas: ${rubricSummary}`, { align: 'center' })
         .text(`Docente: ${process.course.teacher.firstName} ${process.course.teacher.lastName}`, { align: 'center' })
         .text(`Generado: ${new Date().toLocaleDateString('es-CO')}`, { align: 'center' });
 

@@ -13,6 +13,7 @@
 
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
+import { getAllProcessCriteria, getRubricForEvaluationType } from '../utils/rubricAssignment';
 
 export interface IndividualAnalytics {
   studentId: string;
@@ -125,7 +126,11 @@ export class AnalyticsService {
     // Obtener proceso con rúbrica
     const process = await prisma.evaluationProcess.findUnique({
       where: { id: processId },
-      include: { rubric: { include: { criteria: true } } }
+      include: {
+        selfRubric: { include: { criteria: true } },
+        peerRubric: { include: { criteria: true } },
+        teacherRubric: { include: { criteria: true } },
+      }
     });
     if (!process) throw new AppError('Proceso no encontrado', 404);
 
@@ -146,10 +151,12 @@ export class AnalyticsService {
     // Calcular puntajes ponderados
     const calcWeightedScore = (eval_: typeof evaluations[0] | undefined): number | null => {
       if (!eval_ || eval_.scores.length === 0) return null;
-      const totalWeight = process.rubric.criteria.reduce((s, c) => s + c.weight, 0);
+      const rubric = getRubricForEvaluationType(process, eval_.type);
+      if (!rubric) return null;
+      const totalWeight = rubric.criteria.reduce((s, c) => s + c.weight, 0);
       let weighted = 0;
       for (const score of eval_.scores) {
-        const criterion = process.rubric.criteria.find((c) => c.id === score.criteriaId);
+        const criterion = rubric.criteria.find((c) => c.id === score.criteriaId);
         if (criterion) weighted += score.score * (criterion.weight / totalWeight);
       }
       return Math.round(weighted * 100) / 100;
@@ -176,7 +183,7 @@ export class AnalyticsService {
 
     // Promedios por criterio (todas las evaluaciones)
     const criteriaAverages: Record<string, number> = {};
-    for (const criterion of process.rubric.criteria) {
+    for (const criterion of getAllProcessCriteria(process)) {
       const allScores = evaluations
         .flatMap((e) => e.scores)
         .filter((s) => s.criteriaId === criterion.id)
@@ -229,7 +236,11 @@ export class AnalyticsService {
 
     const process = await prisma.evaluationProcess.findUnique({
       where: { id: processId },
-      include: { rubric: { include: { criteria: true } } }
+      include: {
+        selfRubric: { include: { criteria: true } },
+        peerRubric: { include: { criteria: true } },
+        teacherRubric: { include: { criteria: true } },
+      }
     });
     if (!process) throw new AppError('Proceso no encontrado', 404);
 
@@ -252,7 +263,7 @@ export class AnalyticsService {
 
     // Promedios por criterio del equipo
     const criteriaAverages: Record<string, number> = {};
-    for (const criterion of process.rubric.criteria) {
+    for (const criterion of getAllProcessCriteria(process)) {
       const vals = memberAnalytics.map((a) => a.criteriaAverages[criterion.name] ?? 0);
       criteriaAverages[criterion.name] = Math.round(this.mean(vals) * 100) / 100;
     }
@@ -300,7 +311,9 @@ export class AnalyticsService {
       where: { id: processId },
       include: {
         course: { select: { id: true, name: true } },
-        rubric: { include: { criteria: true } }
+        selfRubric: { include: { criteria: true } },
+        peerRubric: { include: { criteria: true } },
+        teacherRubric: { include: { criteria: true } },
       }
     });
     if (!process) throw new AppError('Proceso no encontrado', 404);
@@ -344,7 +357,7 @@ export class AnalyticsService {
 
     // Promedios por criterio
     const criteriaAverages: Record<string, { name: string; average: number; weight: number }> = {};
-    for (const criterion of process.rubric.criteria) {
+    for (const criterion of getAllProcessCriteria(process)) {
       const vals = results
         .map((r) => {
           const cs = r.criteriaScores ? JSON.parse(r.criteriaScores) as Record<string, number> : null;
@@ -424,11 +437,7 @@ export class AnalyticsService {
 
   async getInstitutionalAnalytics(institutionId: string, periodId?: string) {
     // Comparación entre cursos
-    const analytics = await prisma.courseAnalytics.findMany({
-      include: {
-        // Prisma no tiene relación directa, buscar por processId
-      }
-    });
+    const analytics = await prisma.courseAnalytics.findMany();
 
     // Comparación entre docentes
     const courses = await prisma.course.findMany({
@@ -454,7 +463,7 @@ export class AnalyticsService {
       periods.map(async (period) => {
         const periodCourses = await prisma.course.findMany({
           where: { institutionId, periodId: period.id },
-          include: { evaluationProcesses: true }
+      include: { evaluationProcesses: true }
         });
 
         const processIds = periodCourses
