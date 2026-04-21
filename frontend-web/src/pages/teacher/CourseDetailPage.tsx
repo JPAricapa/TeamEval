@@ -38,6 +38,10 @@ type StudentOption = {
   email: string
 }
 
+function toTitleCase(str: string) {
+  return str.toLowerCase().split(' ').map((w) => w ? w[0].toUpperCase() + w.slice(1) : w).join(' ')
+}
+
 function getAutomaticPeriodLabel(date = new Date()) {
   const year = date.getFullYear()
   const semester = date.getMonth() <= 4 ? 1 : 2
@@ -307,7 +311,7 @@ export function CourseDetailPage() {
           <CardContent className="space-y-3 text-sm">
             <div>
               <p className="text-gray-400">Docente</p>
-              <p className="font-medium text-gray-900">{course.teacher ? `${course.teacher.firstName} ${course.teacher.lastName}` : 'Sin asignar'}</p>
+              <p className="font-medium text-gray-900">{course.teacher ? `${toTitleCase(course.teacher.firstName)} ${toTitleCase(course.teacher.lastName)}` : 'Sin asignar'}</p>
               {course.teacher?.email && <p className="text-gray-500">{course.teacher.email}</p>}
             </div>
             <div>
@@ -366,7 +370,7 @@ export function CourseDetailPage() {
                 <div className="space-y-2">
                   {(group.members ?? []).map((member) => {
                     const key = `${group.id}:${member.user?.id}`
-                    const fullName = member.user ? `${member.user.firstName} ${member.user.lastName}` : 'Integrante'
+                    const fullName = member.user ? `${toTitleCase(member.user.firstName)} ${toTitleCase(member.user.lastName)}` : 'Integrante'
                     return (
                       <div key={member.user?.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-white px-3 py-2 text-sm">
                         <div className="min-w-0">
@@ -572,7 +576,7 @@ export function CourseDetailPage() {
                     className="w-full flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 text-left hover:border-primary/40 hover:bg-blue-50/30 transition-colors disabled:opacity-50"
                   >
                     <div className="min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{student.firstName} {student.lastName}</p>
+                      <p className="font-medium text-gray-900 truncate">{toTitleCase(student.firstName)} {toTitleCase(student.lastName)}</p>
                       <p className="text-xs text-gray-500 truncate">{student.email}</p>
                     </div>
                     <Plus className="w-4 h-4 text-primary flex-shrink-0" />
