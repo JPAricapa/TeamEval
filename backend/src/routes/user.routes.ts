@@ -9,7 +9,7 @@ import { userService } from '../services/user.service';
 const router = Router();
 router.use(authenticate);
 
-router.get('/', adminOnly,
+router.get('/', teacherOrAdmin,
   [
     query('page').optional().isInt({ min: 1 }).toInt(),
     query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),

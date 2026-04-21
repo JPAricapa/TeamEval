@@ -131,9 +131,19 @@ export function CoursesPage() {
                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${colors[i % colors.length]} flex items-center justify-center bg-primary/10`}>
                   <BookOpen className="w-5 h-5 text-primary" />
                 </div>
-                <Badge variant={course.isActive ? 'success' : 'secondary'}>
-                  {course.isActive ? 'Activo' : 'Inactivo'}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={course.isActive ? 'success' : 'secondary'}>
+                    {course.isActive ? 'Activo' : 'Inactivo'}
+                  </Badge>
+                  <button
+                    type="button"
+                    className="text-gray-300 hover:text-red-500 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(course) }}
+                    title="Eliminar curso"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <h3 className="font-semibold text-gray-900 text-sm leading-snug group-hover:text-primary transition-colors">
                 {course.name}
@@ -147,23 +157,13 @@ export function CoursesPage() {
               </div>
               <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
                 <span>{course.credits} créditos</span>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    className="text-red-400 hover:text-red-600 transition-colors"
-                    onClick={(e) => { e.stopPropagation(); setConfirmDelete(course) }}
-                    title="Eliminar curso"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="font-medium text-primary hover:underline"
-                    onClick={() => navigate(`/teacher/courses/${course.id}`)}
-                  >
-                    Abrir curso
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="font-medium text-primary hover:underline"
+                  onClick={() => navigate(`/teacher/courses/${course.id}`)}
+                >
+                  Abrir curso
+                </button>
               </div>
             </CardContent>
           </Card>
