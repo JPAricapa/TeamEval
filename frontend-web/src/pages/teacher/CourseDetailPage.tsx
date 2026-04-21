@@ -95,10 +95,8 @@ export function CourseDetailPage() {
     setStudentSearch('')
     setMemberError('')
     setAddingMemberGroupId(groupId)
-    usersApi.getAll({ limit: 200 })
-      .then((r) => setAllStudents(
-        (r.data.data ?? []).filter((u: StudentOption & { role: string }) => u.role === 'STUDENT')
-      ))
+    usersApi.getAll({ limit: 100, role: 'STUDENT' })
+      .then((r) => setAllStudents(r.data.data ?? []))
       .catch(() => setMemberError('No se pudo cargar la lista de estudiantes.'))
   }
 
