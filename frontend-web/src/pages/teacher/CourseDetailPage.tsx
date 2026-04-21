@@ -73,6 +73,7 @@ export function CourseDetailPage() {
   const [addingMemberGroupId, setAddingMemberGroupId] = useState<string | null>(null)
   const [allStudents, setAllStudents] = useState<StudentOption[]>([])
   const [studentSearch, setStudentSearch] = useState('')
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set())
   const [savingMember, setSavingMember] = useState(false)
   const [memberError, setMemberError] = useState('')
 
@@ -98,6 +99,7 @@ export function CourseDetailPage() {
   const openAddMember = (groupId: string) => {
     setStudentSearch('')
     setMemberError('')
+    setSelectedStudentIds(new Set())
     setAddingMemberGroupId(groupId)
     usersApi.getAll({ limit: 100, role: 'STUDENT' })
       .then((r) => setAllStudents(r.data.data ?? []))
@@ -109,6 +111,7 @@ export function CourseDetailPage() {
     setAllStudents([])
     setStudentSearch('')
     setMemberError('')
+    setSelectedStudentIds(new Set())
   }
 
   // Estudiantes ya en el grupo activo
@@ -126,29 +129,25 @@ export function CourseDetailPage() {
     return !inGroup && matchSearch
   })
 
-  const handleAddMember = async (student: StudentOption) => {
-    if (!addingMemberGroupId) return
+  const toggleStudentSelection = (id: string) => {
+    setSelectedStudentIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleSaveMembers = async () => {
+    if (!addingMemberGroupId || selectedStudentIds.size === 0) return
     setSavingMember(true)
     setMemberError('')
     try {
-      await groupsApi.addMember(addingMemberGroupId, student.id)
+      await Promise.all([...selectedStudentIds].map(id => groupsApi.addMember(addingMemberGroupId, id)))
       loadCourse()
-      // Actualizar miembros localmente para que desaparezca del listado
-      setCourse(prev => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          groups: prev.groups?.map(g =>
-            g.id !== addingMemberGroupId ? g : {
-              ...g,
-              members: [...(g.members ?? []), { user: student }]
-            }
-          )
-        }
-      })
+      closeAddMember()
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setMemberError(msg ?? 'No se pudo agregar el integrante.')
+      setMemberError(msg ?? 'No se pudo agregar los integrantes.')
     } finally {
       setSavingMember(false)
     }
@@ -567,27 +566,42 @@ export function CourseDetailPage() {
                     : 'Todos los estudiantes ya están en este grupo.'}
                 </div>
               ) : (
-                filteredStudents.map((student) => (
-                  <button
-                    key={student.id}
-                    type="button"
-                    disabled={savingMember}
-                    onClick={() => handleAddMember(student)}
-                    className="w-full flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 text-left hover:border-primary/40 hover:bg-blue-50/30 transition-colors disabled:opacity-50"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{toTitleCase(student.firstName)} {toTitleCase(student.lastName)}</p>
-                      <p className="text-xs text-gray-500 truncate">{student.email}</p>
-                    </div>
-                    <Plus className="w-4 h-4 text-primary flex-shrink-0" />
-                  </button>
-                ))
+                filteredStudents.map((student) => {
+                  const selected = selectedStudentIds.has(student.id)
+                  return (
+                    <button
+                      key={student.id}
+                      type="button"
+                      disabled={savingMember}
+                      onClick={() => toggleStudentSelection(student.id)}
+                      className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors disabled:opacity-50 ${selected ? 'border-primary bg-blue-50' : 'border-gray-100 bg-white hover:border-primary/40 hover:bg-blue-50/30'}`}
+                    >
+                      <input
+                        type="checkbox"
+                        readOnly
+                        checked={selected}
+                        className="w-4 h-4 accent-primary flex-shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{toTitleCase(student.firstName)} {toTitleCase(student.lastName)}</p>
+                        <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                      </div>
+                    </button>
+                  )
+                })
               )}
             </div>
 
-            <div className="border-t border-gray-100 p-5 pt-3">
-              <Button variant="outline" className="w-full" onClick={closeAddMember} disabled={savingMember}>
-                Cerrar
+            <div className="border-t border-gray-100 p-4 flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={closeAddMember} disabled={savingMember}>
+                Cancelar
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSaveMembers}
+                disabled={savingMember || selectedStudentIds.size === 0}
+              >
+                {savingMember ? <Loader2 className="w-4 h-4 animate-spin" /> : `Guardar (${selectedStudentIds.size})`}
               </Button>
             </div>
           </div>
