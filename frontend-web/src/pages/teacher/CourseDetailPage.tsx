@@ -114,19 +114,24 @@ export function CourseDetailPage() {
     setSelectedStudentIds(new Set())
   }
 
-  // Estudiantes ya en el grupo activo
-  const currentGroupMembers = (() => {
-    if (!addingMemberGroupId || !course) return new Set<string>()
-    const group = course.groups?.find(g => g.id === addingMemberGroupId)
-    return new Set((group?.members ?? []).map(m => m.user?.id).filter(Boolean) as string[])
+  // Estudiantes ya asignados en cualquier grupo del curso
+  const studentsInAnyCourseGroup = (() => {
+    if (!course) return new Set<string>()
+    const ids: string[] = []
+    for (const g of course.groups ?? []) {
+      for (const m of g.members ?? []) {
+        if (m.user?.id) ids.push(m.user.id)
+      }
+    }
+    return new Set(ids)
   })()
 
   const filteredStudents = allStudents.filter((s) => {
-    const inGroup = currentGroupMembers.has(s.id)
+    const inAnyGroup = studentsInAnyCourseGroup.has(s.id)
     const matchSearch = `${s.firstName} ${s.lastName} ${s.email}`
       .toLowerCase()
       .includes(studentSearch.toLowerCase())
-    return !inGroup && matchSearch
+    return !inAnyGroup && matchSearch
   })
 
   const toggleStudentSelection = (id: string) => {
