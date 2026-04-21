@@ -157,7 +157,7 @@ export const authApi = {
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 export const usersApi = {
-  getAll: (params?: { page?: number; limit?: number; search?: string }) =>
+  getAll: (params?: { page?: number; limit?: number; search?: string; role?: string }) =>
     api.get('/users', { params }),
   getMe: () => api.get('/users/me'),
   getById: (id: string) => api.get(`/users/${id}`),
