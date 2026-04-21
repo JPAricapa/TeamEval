@@ -238,17 +238,23 @@ class EvaluationService {
         process: { status: ProcessStatus.ACTIVE }
       },
       include: {
-        evaluated: {
+        evaluated: { select: { id: true, firstName: true, lastName: true } },
+        process: {
           select: {
-            firstName: true, lastName: true,
-            studentGroups: {
-              where: { isActive: true },
-              take: 1,
-              select: { group: { select: { name: true } } }
+            name: true, endDate: true,
+            course: {
+              select: {
+                groups: {
+                  where: { isActive: true },
+                  select: {
+                    name: true,
+                    members: { where: { isActive: true }, select: { userId: true } }
+                  }
+                }
+              }
             }
           }
         },
-        process: { select: { name: true, endDate: true } },
         scores: { include: { criteria: true } }
       },
       orderBy: { process: { endDate: 'asc' } }

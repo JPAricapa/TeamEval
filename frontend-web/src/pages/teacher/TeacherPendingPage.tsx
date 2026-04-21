@@ -7,16 +7,29 @@ import { Badge } from '@/components/ui/badge'
 import { evaluationsApi } from '@/services/api'
 import { toTitleCase } from '@/lib/utils'
 
+interface CourseGroup {
+  name: string
+  members: Array<{ userId: string }>
+}
+
 interface PendingEvaluation {
   id: string
   type: 'SELF' | 'PEER' | 'TEACHER'
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
-  evaluated?: {
-    firstName: string
-    lastName: string
-    studentGroups?: Array<{ group?: { name: string } }>
+  evaluated?: { id: string; firstName: string; lastName: string }
+  process?: {
+    name: string
+    endDate?: string
+    course?: { groups?: CourseGroup[] }
   }
-  process?: { name: string; endDate?: string }
+}
+
+function getGroupName(ev: PendingEvaluation): string {
+  const groups = ev.process?.course?.groups ?? []
+  const evaluatedId = ev.evaluated?.id
+  if (!evaluatedId) return 'Sin grupo'
+  const group = groups.find(g => g.members.some(m => m.userId === evaluatedId))
+  return group?.name ?? 'Sin grupo'
 }
 
 export function TeacherPendingPage() {
@@ -37,11 +50,11 @@ export function TeacherPendingPage() {
 
   const teacherEvals = evaluations.filter(e => e.type === 'TEACHER')
 
-  // Agrupar por proceso y dentro por grupo
+  // Agrupar por proceso y luego por grupo
   const byProcess: Record<string, { processName: string; byGroup: Record<string, PendingEvaluation[]> }> = {}
   for (const ev of teacherEvals) {
     const processName = ev.process?.name ?? 'Sin proceso'
-    const groupName = ev.evaluated?.studentGroups?.[0]?.group?.name ?? 'Sin grupo'
+    const groupName = getGroupName(ev)
     if (!byProcess[processName]) byProcess[processName] = { processName, byGroup: {} }
     if (!byProcess[processName].byGroup[groupName]) byProcess[processName].byGroup[groupName] = []
     byProcess[processName].byGroup[groupName].push(ev)
