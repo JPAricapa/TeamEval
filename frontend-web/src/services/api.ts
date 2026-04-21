@@ -210,6 +210,7 @@ export const groupsApi = {
     lastName: string
     nationalId: string
   }) => api.post(`/groups/${groupId}/students`, data),
+  rename: (groupId: string, name: string) => api.patch(`/groups/${groupId}`, { name }),
   delete: (groupId: string) => api.delete(`/groups/${groupId}`),
   removeMember: (groupId: string, userId: string) =>
     api.delete(`/groups/${groupId}/members/${userId}`),

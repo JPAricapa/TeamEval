@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, FileText, FolderKanban, Loader2, Lock, Play, Plus, Search, Trash2, Users, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, FileText, FolderKanban, Loader2, Lock, Pencil, Play, Plus, Search, Trash2, Users, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -76,6 +76,12 @@ export function CourseDetailPage() {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(new Set())
   const [savingMember, setSavingMember] = useState(false)
   const [memberError, setMemberError] = useState('')
+
+  // Renombrar grupo
+  const [renamingGroup, setRenamingGroup] = useState<{ id: string; name: string } | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [renameError, setRenameError] = useState('')
+  const [savingRename, setSavingRename] = useState(false)
 
   // Otros
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null)
@@ -155,6 +161,22 @@ export function CourseDetailPage() {
       setMemberError(msg ?? 'No se pudo agregar los integrantes.')
     } finally {
       setSavingMember(false)
+    }
+  }
+
+  const handleRenameGroup = async () => {
+    if (!renamingGroup || !renameValue.trim()) { setRenameError('Escribe un nombre.'); return }
+    setSavingRename(true)
+    setRenameError('')
+    try {
+      await groupsApi.rename(renamingGroup.id, renameValue.trim())
+      loadCourse()
+      setRenamingGroup(null)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setRenameError(msg ?? 'No se pudo renombrar el grupo.')
+    } finally {
+      setSavingRename(false)
     }
   }
 
@@ -349,9 +371,19 @@ export function CourseDetailPage() {
           {(course.groups ?? []).map((group) => (
             <div key={group.id} className="rounded-xl border border-gray-100 p-4">
               <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-medium text-gray-900">{group.name}</p>
-                  <p className="text-xs text-gray-500">{group.members?.length ?? 0} integrantes</p>
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="font-medium text-gray-900">{group.name}</p>
+                    <p className="text-xs text-gray-500">{group.members?.length ?? 0} integrantes</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-gray-400 hover:text-primary transition-colors"
+                    title="Renombrar grupo"
+                    onClick={() => { setRenamingGroup({ id: group.id, name: group.name }); setRenameValue(group.name); setRenameError('') }}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 <Button
                   variant="outline"
@@ -480,6 +512,28 @@ export function CourseDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Modal: Renombrar grupo ── */}
+      {renamingGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Renombrar grupo</h2>
+            <Input
+              placeholder="Nuevo nombre del grupo"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              autoFocus
+            />
+            {renameError && <p className="mt-2 text-xs text-red-600">{renameError}</p>}
+            <div className="flex gap-3 mt-5">
+              <Button variant="outline" className="flex-1" onClick={() => setRenamingGroup(null)} disabled={savingRename}>Cancelar</Button>
+              <Button className="flex-1" onClick={handleRenameGroup} disabled={savingRename || !renameValue.trim()}>
+                {savingRename ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: Crear grupo ── */}
       {showGroupModal && (

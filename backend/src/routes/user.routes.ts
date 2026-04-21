@@ -91,6 +91,8 @@ router.patch('/:id',
     param('id').isUUID(),
     body('firstName').optional().trim().notEmpty(),
     body('lastName').optional().trim().notEmpty(),
+    body('email').optional().isEmail().normalizeEmail().withMessage('Email inválido'),
+    body('nationalId').optional().trim().notEmpty().withMessage('Cédula no puede estar vacía'),
     body('isActive').optional().isBoolean()
   ],
   validate,

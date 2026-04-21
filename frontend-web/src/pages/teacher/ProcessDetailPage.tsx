@@ -25,8 +25,8 @@ type Evaluation = {
   id: string
   type: 'SELF' | 'PEER' | 'TEACHER'
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
-  evaluator?: { firstName: string; lastName: string }
-  evaluated?: { firstName: string; lastName: string }
+  evaluator?: { id?: string; firstName: string; lastName: string }
+  evaluated?: { id?: string; firstName: string; lastName: string }
 }
 
 type ProcessDetail = {
@@ -344,44 +344,63 @@ export function ProcessDetailPage() {
       </Card>
 
       {/* Evaluaciones */}
-      {process.status !== 'DRAFT' && (
-        <Card>
-          <CardHeader><CardTitle>Evaluaciones generadas</CardTitle></CardHeader>
-          <CardContent className="p-0">
-            {evaluations.length === 0 ? (
-              <p className="p-6 text-sm text-gray-500 text-center">
-                No hay evaluaciones generadas para este proceso.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-y border-gray-100">
-                    <tr>
-                      {['Tipo', 'Evaluador', 'Evaluado', 'Estado'].map(h => (
-                        <th key={h} className="text-left text-xs font-medium text-gray-500 px-4 py-3 whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {evaluations.map(ev => (
-                      <tr key={ev.id} className="hover:bg-gray-50/50">
-                        <td className="px-4 py-3">
-                          <Badge variant="info">{evalTypeLabel[ev.type]}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">{formatName(ev.evaluator)}</td>
-                        <td className="px-4 py-3 text-gray-700">{formatName(ev.evaluated)}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant={evalStatusBadge[ev.status]}>{evalStatusLabel[ev.status]}</Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {process.status !== 'DRAFT' && (() => {
+        // Mapa userId → nombre de grupo
+        const userGroupMap: Record<string, string> = {}
+        for (const g of groups) {
+          for (const m of g.members ?? []) {
+            if (m.user?.id) userGroupMap[m.user.id] = g.name
+          }
+        }
+        // Agrupar evaluaciones por grupo del evaluado
+        const byGroup: Record<string, typeof evaluations> = {}
+        for (const ev of evaluations) {
+          const groupName = (ev.evaluated?.id ? userGroupMap[ev.evaluated.id] : undefined) ?? 'Sin grupo'
+          if (!byGroup[groupName]) byGroup[groupName] = []
+          byGroup[groupName].push(ev)
+        }
+        return (
+          <Card>
+            <CardHeader><CardTitle>Evaluaciones generadas</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              {evaluations.length === 0 ? (
+                <p className="p-6 text-sm text-gray-500 text-center">No hay evaluaciones generadas para este proceso.</p>
+              ) : (
+                Object.entries(byGroup).map(([groupName, evs]) => (
+                  <div key={groupName}>
+                    <div className="px-4 py-2 bg-gray-50 border-y border-gray-100 flex items-center gap-2">
+                      <FolderKanban className="w-4 h-4 text-primary" />
+                      <span className="text-xs font-semibold text-gray-700">{groupName}</span>
+                      <span className="text-xs text-gray-400">({evs.length} evaluaciones)</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50/50 border-b border-gray-100">
+                          <tr>
+                            {['Tipo', 'Evaluador', 'Evaluado', 'Estado'].map(h => (
+                              <th key={h} className="text-left text-xs font-medium text-gray-500 px-4 py-2 whitespace-nowrap">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {evs.map(ev => (
+                            <tr key={ev.id} className="hover:bg-gray-50/50">
+                              <td className="px-4 py-3"><Badge variant="info">{evalTypeLabel[ev.type]}</Badge></td>
+                              <td className="px-4 py-3 text-gray-700">{formatName(ev.evaluator)}</td>
+                              <td className="px-4 py-3 text-gray-700">{formatName(ev.evaluated)}</td>
+                              <td className="px-4 py-3"><Badge variant={evalStatusBadge[ev.status]}>{evalStatusLabel[ev.status]}</Badge></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        )
+      })()}
 
       {/* Resultados consolidados (solo si cerrado) */}
       {process.status === 'CLOSED' && (

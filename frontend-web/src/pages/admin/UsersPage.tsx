@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, Plus, UserCheck, UserX, Loader2, BadgePlus, IdCard, MoreHorizontal, Trash2 } from 'lucide-react'
+import { Search, Plus, UserCheck, UserX, Loader2, BadgePlus, IdCard, MoreHorizontal, Trash2, Pencil } from 'lucide-react'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -64,6 +64,10 @@ export function UsersPage() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
   const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null)
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [editForm, setEditForm] = useState({ fullName: '', email: '', nationalId: '' })
+  const [editError, setEditError] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     usersApi.getAll({ limit: 100 })
@@ -127,6 +131,40 @@ export function UsersPage() {
       setError(msg ?? 'No se pudo actualizar el estado del usuario.')
     } finally {
       setUpdatingUserId(null)
+    }
+  }
+
+  const openEdit = (user: User) => {
+    setEditForm({
+      fullName: `${toTitleCase(user.firstName)} ${toTitleCase(user.lastName)}`,
+      email: user.email,
+      nationalId: user.nationalId ?? '',
+    })
+    setEditError('')
+    setEditingUser(user)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingUser) return
+    const parsedName = splitFullName(editForm.fullName)
+    if (!parsedName) { setEditError('Escribe nombre y apellido.'); return }
+    if (!editForm.email.trim()) { setEditError('El correo es requerido.'); return }
+
+    setSavingEdit(true)
+    setEditError('')
+    try {
+      const r = await usersApi.update(editingUser.id, {
+        ...parsedName,
+        email: editForm.email.trim(),
+        nationalId: editForm.nationalId.trim() || undefined,
+      })
+      setUsers((prev) => prev.map((u) => u.id === editingUser.id ? { ...u, ...r.data.data } : u))
+      setEditingUser(null)
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setEditError(msg ?? 'No se pudo guardar los cambios.')
+    } finally {
+      setSavingEdit(false)
     }
   }
 
@@ -222,7 +260,7 @@ export function UsersPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-y border-gray-100">
                   <tr>
-                    {['Usuario', 'Correo electrónico', 'Rol', 'Estado', 'Curso / Grupo', 'Acciones'].map((h) => (
+                    {['Usuario', 'Cédula', 'Correo electrónico', 'Rol', 'Estado', 'Curso / Grupo', 'Acciones'].map((h) => (
                       <th key={h} className="text-left font-medium text-gray-500 px-6 py-3">{h}</th>
                     ))}
                   </tr>
@@ -240,6 +278,7 @@ export function UsersPage() {
                           </div>
                         </div>
                       </td>
+                      <td className="px-6 py-4 text-gray-500 text-xs font-mono">{user.nationalId ?? '—'}</td>
                       <td className="px-6 py-4 text-gray-500">{user.email}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex text-xs px-2.5 py-1 rounded-full font-medium ${getRoleColor(user.role)}`}>
@@ -298,25 +337,30 @@ export function UsersPage() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {user.role === 'STUDENT' ? (
+                        <div className="flex items-center gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="gap-2 text-red-600 hover:text-red-700"
-                            onClick={() => handleDeleteUser(user)}
-                            disabled={deletingUserId === user.id}
+                            className="gap-1.5"
+                            onClick={() => openEdit(user)}
                           >
-                            {deletingUserId === user.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-3.5 h-3.5" />
-                            )}
-                            Eliminar
+                            <Pencil className="w-3.5 h-3.5" /> Editar
                           </Button>
-                        ) : (
-                          <span className="text-xs text-gray-400">No disponible</span>
-                        )}
+                          {user.role === 'STUDENT' && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteUser(user)}
+                              disabled={deletingUserId === user.id}
+                            >
+                              {deletingUserId === user.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                              Eliminar
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -331,6 +375,51 @@ export function UsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Editar usuario</h2>
+            <p className="text-sm text-gray-500 mb-5">{toTitleCase(editingUser.firstName)} {toTitleCase(editingUser.lastName)}</p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Nombre completo</label>
+                <Input
+                  placeholder="Nombre y apellido"
+                  value={editForm.fullName}
+                  onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Correo electrónico</label>
+                <Input
+                  type="email"
+                  placeholder="correo@uqvirtual.edu.co"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1 block">Cédula</label>
+                <Input
+                  placeholder="Número de cédula"
+                  value={editForm.nationalId}
+                  onChange={(e) => setEditForm((f) => ({ ...f, nationalId: e.target.value }))}
+                />
+              </div>
+              {editError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{editError}</div>
+              )}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button variant="outline" className="flex-1" onClick={() => setEditingUser(null)} disabled={savingEdit}>Cancelar</Button>
+              <Button className="flex-1 gap-2" onClick={handleSaveEdit} disabled={savingEdit}>
+                {savingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar cambios'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

@@ -14,7 +14,7 @@ function normalizeGroupName(name: string) {
 }
 
 const WITH_MEMBERSHIPS = {
-  id: true, email: true, firstName: true, lastName: true,
+  id: true, email: true, firstName: true, lastName: true, nationalId: true,
   role: true, isActive: true, createdAt: true, updatedAt: true, institutionId: true,
   studentGroups: {
     where: { isActive: true, group: { isActive: true } },
@@ -121,7 +121,7 @@ class UserService {
     });
   }
 
-  async updateUser(id: string, requester: AuthUser, data: { firstName?: string; lastName?: string; isActive?: boolean }) {
+  async updateUser(id: string, requester: AuthUser, data: { firstName?: string; lastName?: string; email?: string; nationalId?: string; isActive?: boolean }) {
     const targetUser = await prisma.user.findUnique({ where: { id }, select: { role: true } });
     if (!targetUser) throw new AppError('Usuario no encontrado', 404);
 
@@ -132,6 +132,17 @@ class UserService {
     const updateData: Record<string, unknown> = {};
     if (data.firstName !== undefined) updateData.firstName = data.firstName;
     if (data.lastName !== undefined) updateData.lastName = data.lastName;
+    if (data.email !== undefined && requester.role === UserRole.ADMIN) {
+      const email = normalizeEmail(data.email);
+      const existing = await prisma.user.findFirst({ where: { email: { equals: email, mode: 'insensitive' }, NOT: { id } } });
+      if (existing) throw new AppError('El correo ya está registrado por otro usuario', 409);
+      updateData.email = email;
+    }
+    if (data.nationalId !== undefined && requester.role === UserRole.ADMIN) {
+      const existing = await prisma.user.findFirst({ where: { nationalId: data.nationalId, NOT: { id } } });
+      if (existing) throw new AppError('La cédula ya está registrada por otro usuario', 409);
+      updateData.nationalId = data.nationalId;
+    }
     if (data.isActive !== undefined && requester.role === UserRole.ADMIN) {
       if (targetUser.role === UserRole.ADMIN) throw new AppError('El docente principal no puede cambiar su estado', 400);
       updateData.isActive = data.isActive;

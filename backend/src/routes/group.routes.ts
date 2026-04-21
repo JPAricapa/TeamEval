@@ -80,6 +80,16 @@ router.delete('/:id/members/:userId', teacherOrAdmin,
   }
 );
 
+router.patch('/:id', teacherOrAdmin,
+  [param('id').isUUID(), body('name').trim().notEmpty().withMessage('El nombre es requerido')], validate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const group = await groupService.renameGroup(req.params.id, req.body.name, req.user!);
+      sendSuccess(res, group, 'Grupo actualizado');
+    } catch (error) { next(error); }
+  }
+);
+
 router.delete('/:id', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
