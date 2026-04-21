@@ -21,8 +21,12 @@ const EMPTY_FORM: CreateUserForm = {
   role: 'STUDENT',
 }
 
+function toTitleCase(str: string) {
+  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
 function splitFullName(fullName: string) {
-  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  const parts = fullName.trim().split(/\s+/).filter(Boolean).map(toTitleCase)
   if (parts.length < 2) return null
 
   if (parts.length === 2) {

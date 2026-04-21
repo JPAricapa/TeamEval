@@ -14,13 +14,17 @@ CREATE TYPE "ProcessStatus" AS ENUM ('DRAFT', 'ACTIVE', 'CLOSED', 'ARCHIVED');
 ALTER TABLE "users" ALTER COLUMN "role" TYPE "UserRole" USING "role"::"UserRole";
 
 -- AlterTable evaluation_processes.status: String → ProcessStatus
+ALTER TABLE "evaluation_processes" ALTER COLUMN "status" DROP DEFAULT;
 ALTER TABLE "evaluation_processes" ALTER COLUMN "status" TYPE "ProcessStatus" USING "status"::"ProcessStatus";
+ALTER TABLE "evaluation_processes" ALTER COLUMN "status" SET DEFAULT 'DRAFT'::"ProcessStatus";
 
 -- AlterTable evaluations.type: String → EvaluationType
 ALTER TABLE "evaluations" ALTER COLUMN "type" TYPE "EvaluationType" USING "type"::"EvaluationType";
 
 -- AlterTable evaluations.status: String → EvaluationStatus
+ALTER TABLE "evaluations" ALTER COLUMN "status" DROP DEFAULT;
 ALTER TABLE "evaluations" ALTER COLUMN "status" TYPE "EvaluationStatus" USING "status"::"EvaluationStatus";
+ALTER TABLE "evaluations" ALTER COLUMN "status" SET DEFAULT 'PENDING'::"EvaluationStatus";
 
 -- AlterTable consolidated_results.criteria_scores: Text → JSONB
 ALTER TABLE "consolidated_results"
@@ -42,7 +46,7 @@ ALTER TABLE "team_analytics"
 
 -- AlterTable course_analytics.weakest_criteria: Text → JSONB
 ALTER TABLE "course_analytics"
-  ALTER COLUMN "weakest_criteria" TYPE JSONB USING
+  ALTER COLUMN "criteria_averages" TYPE JSONB USING
     CASE WHEN "weakest_criteria" IS NULL THEN NULL
     ELSE "weakest_criteria"::jsonb END;
 
