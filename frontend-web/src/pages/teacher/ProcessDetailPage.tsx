@@ -430,7 +430,7 @@ export function ProcessDetailPage() {
                     {results.map((r) => (
                       <tr key={String(r.id)} className="hover:bg-gray-50/50">
                         <td className="px-4 py-3 font-medium text-gray-900">
-                          {(r.student as { name?: string } | undefined)?.name ?? 'Sin nombre'}
+                          {toTitleCase((r.student as { name?: string } | undefined)?.name ?? 'Sin nombre')}
                         </td>
                         <td className="px-4 py-3 text-gray-500 text-xs">
                           {(r.team as { name?: string } | undefined)?.name ?? 'Sin equipo'}

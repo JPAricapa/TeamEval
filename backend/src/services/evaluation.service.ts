@@ -82,8 +82,8 @@ class EvaluationService {
         }
       : {
           include: {
-            evaluator: { select: { firstName: true, lastName: true } },
-            evaluated: { select: { firstName: true, lastName: true } }
+            evaluator: { select: { id: true, firstName: true, lastName: true } },
+            evaluated: { select: { id: true, firstName: true, lastName: true } }
           }
         };
 
