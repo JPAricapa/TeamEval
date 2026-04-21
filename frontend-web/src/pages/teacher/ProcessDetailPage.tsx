@@ -206,6 +206,34 @@ export function ProcessDetailPage() {
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0
   const status = statusLabel[process.status]
 
+  // Mapa userId → groupName para agrupar evaluaciones
+  const userGroupMap: Record<string, string> = {}
+  for (const g of groups) {
+    for (const m of g.members ?? []) {
+      if (m.user?.id) userGroupMap[m.user.id] = g.name
+    }
+  }
+  // Ordenar grupos igual que aparecen en el curso
+  const evalsByGroup: Array<{ groupName: string; evs: typeof evaluations }> = []
+  const seen = new Set<string>()
+  // Primero los grupos conocidos (en orden)
+  for (const g of groups) {
+    const evs = evaluations.filter(ev => {
+      const eid = (ev.evaluated as { id?: string } | undefined)?.id
+      return eid ? userGroupMap[eid] === g.name : false
+    })
+    if (evs.length > 0 && !seen.has(g.name)) {
+      evalsByGroup.push({ groupName: g.name, evs })
+      seen.add(g.name)
+    }
+  }
+  // Luego cualquiera sin grupo asignado
+  const ungrouped = evaluations.filter(ev => {
+    const eid = (ev.evaluated as { id?: string } | undefined)?.id
+    return !eid || !userGroupMap[eid]
+  })
+  if (ungrouped.length > 0) evalsByGroup.push({ groupName: 'Sin grupo', evs: ungrouped })
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -344,63 +372,45 @@ export function ProcessDetailPage() {
       </Card>
 
       {/* Evaluaciones */}
-      {process.status !== 'DRAFT' && (() => {
-        // Mapa userId → nombre de grupo
-        const userGroupMap: Record<string, string> = {}
-        for (const g of groups) {
-          for (const m of g.members ?? []) {
-            if (m.user?.id) userGroupMap[m.user.id] = g.name
-          }
-        }
-        // Agrupar evaluaciones por grupo del evaluado
-        const byGroup: Record<string, typeof evaluations> = {}
-        for (const ev of evaluations) {
-          const groupName = (ev.evaluated?.id ? userGroupMap[ev.evaluated.id] : undefined) ?? 'Sin grupo'
-          if (!byGroup[groupName]) byGroup[groupName] = []
-          byGroup[groupName].push(ev)
-        }
-        return (
-          <Card>
-            <CardHeader><CardTitle>Evaluaciones generadas</CardTitle></CardHeader>
-            <CardContent className="p-0">
-              {evaluations.length === 0 ? (
-                <p className="p-6 text-sm text-gray-500 text-center">No hay evaluaciones generadas para este proceso.</p>
-              ) : (
-                Object.entries(byGroup).map(([groupName, evs]) => (
-                  <div key={groupName}>
-                    <div className="px-4 py-2 bg-gray-50 border-y border-gray-100 flex items-center gap-2">
-                      <FolderKanban className="w-4 h-4 text-primary" />
-                      <span className="text-xs font-semibold text-gray-700">{groupName}</span>
-                      <span className="text-xs text-gray-400">({evs.length} evaluaciones)</span>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-50/50 border-b border-gray-100">
-                          <tr>
-                            {['Tipo', 'Evaluador', 'Evaluado', 'Estado'].map(h => (
-                              <th key={h} className="text-left text-xs font-medium text-gray-500 px-4 py-2 whitespace-nowrap">{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                          {evs.map(ev => (
-                            <tr key={ev.id} className="hover:bg-gray-50/50">
-                              <td className="px-4 py-3"><Badge variant="info">{evalTypeLabel[ev.type]}</Badge></td>
-                              <td className="px-4 py-3 text-gray-700">{formatName(ev.evaluator)}</td>
-                              <td className="px-4 py-3 text-gray-700">{formatName(ev.evaluated)}</td>
-                              <td className="px-4 py-3"><Badge variant={evalStatusBadge[ev.status]}>{evalStatusLabel[ev.status]}</Badge></td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        )
-      })()}
+      {process.status !== 'DRAFT' && (
+        <Card>
+          <CardHeader><CardTitle>Evaluaciones generadas</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            {evaluations.length === 0 ? (
+              <p className="p-6 text-sm text-gray-500 text-center">No hay evaluaciones generadas para este proceso.</p>
+            ) : evalsByGroup.map(({ groupName, evs }) => (
+              <div key={groupName}>
+                <div className="px-4 py-2 bg-gray-50 border-y border-gray-100 flex items-center gap-2">
+                  <FolderKanban className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-semibold text-gray-700">{groupName}</span>
+                  <span className="text-xs text-gray-400">({evs.length} evaluaciones)</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50/50 border-b border-gray-100">
+                      <tr>
+                        {['Tipo', 'Evaluador', 'Evaluado', 'Estado'].map(h => (
+                          <th key={h} className="text-left text-xs font-medium text-gray-500 px-4 py-2 whitespace-nowrap">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {evs.map(ev => (
+                        <tr key={ev.id} className="hover:bg-gray-50/50">
+                          <td className="px-4 py-3"><Badge variant="info">{evalTypeLabel[ev.type]}</Badge></td>
+                          <td className="px-4 py-3 text-gray-700">{formatName(ev.evaluator)}</td>
+                          <td className="px-4 py-3 text-gray-700">{formatName(ev.evaluated)}</td>
+                          <td className="px-4 py-3"><Badge variant={evalStatusBadge[ev.status]}>{evalStatusLabel[ev.status]}</Badge></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Resultados consolidados (solo si cerrado) */}
       {process.status === 'CLOSED' && (
