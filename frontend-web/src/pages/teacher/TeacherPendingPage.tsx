@@ -1,16 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ClipboardList, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { ClipboardList, Loader2, ArrowRight, CheckCircle2, Users } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { evaluationsApi } from '@/services/api'
+import { toTitleCase } from '@/lib/utils'
 
 interface PendingEvaluation {
   id: string
   type: 'SELF' | 'PEER' | 'TEACHER'
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED'
-  evaluated?: { firstName: string; lastName: string }
+  evaluated?: {
+    firstName: string
+    lastName: string
+    studentGroups?: Array<{ group?: { name: string } }>
+  }
   process?: { name: string; endDate?: string }
 }
 
@@ -31,12 +36,16 @@ export function TeacherPendingPage() {
   }, [])
 
   const teacherEvals = evaluations.filter(e => e.type === 'TEACHER')
-  const grouped = teacherEvals.reduce<Record<string, PendingEvaluation[]>>((acc, ev) => {
-    const key = ev.process?.name ?? 'Sin proceso'
-    if (!acc[key]) acc[key] = []
-    acc[key].push(ev)
-    return acc
-  }, {})
+
+  // Agrupar por proceso y dentro por grupo
+  const byProcess: Record<string, { processName: string; byGroup: Record<string, PendingEvaluation[]> }> = {}
+  for (const ev of teacherEvals) {
+    const processName = ev.process?.name ?? 'Sin proceso'
+    const groupName = ev.evaluated?.studentGroups?.[0]?.group?.name ?? 'Sin grupo'
+    if (!byProcess[processName]) byProcess[processName] = { processName, byGroup: {} }
+    if (!byProcess[processName].byGroup[groupName]) byProcess[processName].byGroup[groupName] = []
+    byProcess[processName].byGroup[groupName].push(ev)
+  }
 
   if (loading) {
     return (
@@ -75,35 +84,51 @@ export function TeacherPendingPage() {
           </CardContent>
         </Card>
       ) : (
-        Object.entries(grouped).map(([processName, items]) => (
+        Object.values(byProcess).map(({ processName, byGroup }) => (
           <Card key={processName}>
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-4">
                 <ClipboardList className="w-4 h-4 text-primary" />
                 <h3 className="font-semibold text-gray-900">{processName}</h3>
-                <Badge variant="info" className="ml-auto">{items.length} pendientes</Badge>
+                <Badge variant="info" className="ml-auto">
+                  {Object.values(byGroup).flat().length} pendientes
+                </Badge>
               </div>
-              <div className="space-y-2">
-                {items.map(ev => (
-                  <div
-                    key={ev.id}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {ev.evaluated ? `${ev.evaluated.firstName} ${ev.evaluated.lastName}` : 'Estudiante'}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {ev.status === 'IN_PROGRESS' ? 'En progreso' : 'Pendiente'}
-                      </p>
+
+              <div className="space-y-4">
+                {Object.entries(byGroup).map(([groupName, items]) => (
+                  <div key={groupName}>
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                      <Users className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="text-xs font-semibold text-gray-600">{groupName}</span>
+                      <span className="text-xs text-gray-400">({items.length})</span>
                     </div>
-                    <Button
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => navigate(`/teacher/evaluate/${ev.id}`)}
-                    >
-                      Evaluar <ArrowRight className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="space-y-2">
+                      {items.map(ev => (
+                        <div
+                          key={ev.id}
+                          className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3 hover:bg-gray-50"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {ev.evaluated
+                                ? `${toTitleCase(ev.evaluated.firstName)} ${toTitleCase(ev.evaluated.lastName)}`
+                                : 'Estudiante'}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {ev.status === 'IN_PROGRESS' ? 'En progreso' : 'Pendiente'}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="gap-1"
+                            onClick={() => navigate(`/teacher/evaluate/${ev.id}`)}
+                          >
+                            Evaluar <ArrowRight className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
