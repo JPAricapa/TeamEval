@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/store/authStore'
 import { evaluationsApi, coursesApi } from '@/services/api'
+import { toTitleCase } from '@/lib/utils'
 import type { EvaluationProcess, Course } from '@/types'
 
 const statusBadge: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'secondary' }> = {
@@ -52,7 +53,7 @@ export function TeacherDashboard() {
       {/* Welcome */}
       <div className="bg-gradient-to-r from-primary to-blue-700 rounded-2xl p-6 text-white">
         <p className="text-blue-200 text-sm">{greeting()},</p>
-        <h1 className="text-2xl font-bold mt-1">{user?.firstName} {user?.lastName}</h1>
+        <h1 className="text-2xl font-bold mt-1">{user?.firstName ? toTitleCase(user.firstName) : ''} {user?.lastName ? toTitleCase(user.lastName) : ''}</h1>
         <p className="text-blue-200 mt-1 text-sm">
           {active.length > 0
             ? `Tienes ${active.length} proceso${active.length > 1 ? 's' : ''} de evaluación activo${active.length > 1 ? 's' : ''}`

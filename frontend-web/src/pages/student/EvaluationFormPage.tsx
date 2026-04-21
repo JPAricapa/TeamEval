@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { evaluationsApi } from '@/services/api'
+import { toTitleCase } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
 import type { Rubric } from '@/types'
 
@@ -72,9 +73,9 @@ export function EvaluationFormPage() {
       .then(r => {
         const ev = r.data.data
         const evaluatedName = ev.evaluatee
-          ? `${ev.evaluatee.firstName} ${ev.evaluatee.lastName}`
+          ? `${toTitleCase(ev.evaluatee.firstName)} ${toTitleCase(ev.evaluatee.lastName)}`
           : ev.evaluated
-            ? `${ev.evaluated.firstName} ${ev.evaluated.lastName}`
+            ? `${toTitleCase(ev.evaluated.firstName)} ${toTitleCase(ev.evaluated.lastName)}`
             : null
         const fallbackEvaluateeName =
           ev.type === 'SELF'

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/services/api'
-import { cn, getRoleName, getRoleColor } from '@/lib/utils'
+import { cn, getRoleName, getRoleColor, toTitleCase } from '@/lib/utils'
 
 type Role = 'ADMIN' | 'TEACHER' | 'STUDENT'
 
@@ -112,12 +112,12 @@ export function AppLayout({ role }: AppLayoutProps) {
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-bold text-primary">
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
+              {user?.firstName ? toTitleCase(user.firstName)[0] : ''}{user?.lastName ? toTitleCase(user.lastName)[0] : ''}
             </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {user?.firstName} {user?.lastName}
+              {user?.firstName ? toTitleCase(user.firstName) : ''} {user?.lastName ? toTitleCase(user.lastName) : ''}
             </p>
             <span className={cn('inline-flex text-xs px-1.5 py-0.5 rounded font-medium', getRoleColor(user?.role ?? ''))}>
               {getRoleName(user?.role ?? '')}
@@ -169,12 +169,12 @@ export function AppLayout({ role }: AppLayoutProps) {
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <span className="text-xs font-bold text-primary">
-                {user?.firstName?.[0]}{user?.lastName?.[0]}
+                {user?.firstName ? toTitleCase(user.firstName)[0] : ''}{user?.lastName ? toTitleCase(user.lastName)[0] : ''}
               </span>
             </div>
             <div className="hidden sm:block">
               <p className="text-sm font-medium text-gray-900 leading-none">
-                {user?.firstName} {user?.lastName}
+                {user?.firstName ? toTitleCase(user.firstName) : ''} {user?.lastName ? toTitleCase(user.lastName) : ''}
               </p>
               <p className="text-xs text-gray-400 mt-0.5 truncate max-w-40">{user?.email}</p>
             </div>

@@ -4,6 +4,7 @@ import { ClipboardList, CheckCircle2, Clock, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { evaluationsApi } from '@/services/api'
+import { toTitleCase } from '@/lib/utils'
 import type { Evaluation } from '@/types'
 
 const typeInfo: Record<string, { label: string; color: string }> = {
@@ -16,10 +17,10 @@ function getEvaluationTitle(ev: Evaluation) {
   const evaluated = ev.evaluatee ?? ev.evaluated
   if (ev.type === 'SELF') return 'Autoevaluación'
   if (ev.type === 'PEER') {
-    return evaluated ? `${evaluated.firstName} ${evaluated.lastName}` : 'Evaluar compañero'
+    return evaluated ? `${toTitleCase(evaluated.firstName)} ${toTitleCase(evaluated.lastName)}` : 'Evaluar compañero'
   }
   if (ev.type === 'TEACHER') {
-    return evaluated ? `${evaluated.firstName} ${evaluated.lastName}` : 'Evaluación docente'
+    return evaluated ? `${toTitleCase(evaluated.firstName)} ${toTitleCase(evaluated.lastName)}` : 'Evaluación docente'
   }
   return 'Evaluación'
 }
@@ -27,7 +28,7 @@ function getEvaluationTitle(ev: Evaluation) {
 function getEvaluationAvatar(ev: Evaluation) {
   const evaluated = ev.evaluatee ?? ev.evaluated
   if (ev.type === 'SELF') return 'YO'
-  if (evaluated) return `${evaluated.firstName[0]}${evaluated.lastName[0]}`
+  if (evaluated) return `${toTitleCase(evaluated.firstName)[0]}${toTitleCase(evaluated.lastName)[0]}`
   return '?'
 }
 

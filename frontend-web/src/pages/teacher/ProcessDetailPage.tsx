@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { consolidationApi, evaluationsApi, exportApi } from '@/services/api'
+import { toTitleCase } from '@/lib/utils'
 
 type GroupMember = {
   user?: { id: string; firstName: string; lastName: string; email?: string }
@@ -81,7 +82,7 @@ const evalStatusLabel: Record<Evaluation['status'], string> = {
 
 function formatName(person?: { firstName: string; lastName: string }) {
   if (!person) return '—'
-  return `${person.firstName} ${person.lastName}`
+  return `${toTitleCase(person.firstName)} ${toTitleCase(person.lastName)}`
 }
 
 function scoreColor(s: number) {
@@ -325,7 +326,7 @@ export function ProcessDetailPage() {
                 {(group.members ?? []).map(m => (
                   <div key={m.user?.id} className="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm">
                     <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                      {m.user?.firstName?.[0] ?? '?'}{m.user?.lastName?.[0] ?? ''}
+                      {m.user?.firstName ? toTitleCase(m.user.firstName)[0] : '?'}{m.user?.lastName ? toTitleCase(m.user.lastName)[0] : ''}
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-gray-900 truncate">{formatName(m.user)}</p>

@@ -25,6 +25,10 @@ export function getScoreBg(score: number, max: number = 5): string {
   return 'bg-red-50 border-red-200'
 }
 
+export function toTitleCase(str: string): string {
+  return str.toLowerCase().split(' ').map((w) => w ? w[0].toUpperCase() + w.slice(1) : w).join(' ')
+}
+
 export function getRoleName(role: string): string {
   const map: Record<string, string> = {
     ADMIN: 'Docente',
