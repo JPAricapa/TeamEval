@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, FileText, FolderKanban, Loader2, Lock, Play, Plus, Trash2, Users, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, FileText, FolderKanban, Loader2, Lock, Play, Plus, Search, Trash2, Users, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,26 +31,12 @@ type CourseDetail = {
   evaluationProcesses?: Array<{ id: string; name: string; status: string }>
 }
 
-type StudentForm = {
+type StudentOption = {
   id: string
-  email: string
   firstName: string
   lastName: string
-  nationalId: string
+  email: string
 }
-
-const EMPTY_STUDENT_FORM: StudentForm = {
-  id: '',
-  email: '',
-  firstName: '',
-  lastName: '',
-  nationalId: '',
-}
-
-const createEmptyStudent = (): StudentForm => ({
-  ...EMPTY_STUDENT_FORM,
-  id: crypto.randomUUID(),
-})
 
 function getAutomaticPeriodLabel(date = new Date()) {
   const year = date.getFullYear()
@@ -66,44 +52,31 @@ function inferRubricType(name?: string) {
   return 'Sin tipo'
 }
 
-function isValidStudentEmail(email: string) {
-  const normalized = email.trim().toLowerCase()
-  if (!normalized) return false
-
-  const basicEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!basicEmailPattern.test(normalized)) return false
-
-  const [localPart, domainPart] = normalized.split('@')
-  if (!localPart || !domainPart) return false
-
-  return (
-    !localPart.startsWith('.') &&
-    !localPart.endsWith('.') &&
-    !localPart.includes('..') &&
-    !domainPart.startsWith('.') &&
-    !domainPart.endsWith('.') &&
-    !domainPart.includes('..')
-  )
-}
-
 export function CourseDetailPage() {
   const { courseId } = useParams()
   const navigate = useNavigate()
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Modal crear grupo
   const [showGroupModal, setShowGroupModal] = useState(false)
   const [groupName, setGroupName] = useState('')
-  const [creatingGroup, setCreatingGroup] = useState(false)
-  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null)
-  const [updatingProcessId, setUpdatingProcessId] = useState<string | null>(null)
   const [groupError, setGroupError] = useState('')
-  const [newGroupStudents, setNewGroupStudents] = useState<StudentForm[]>([createEmptyStudent()])
+  const [creatingGroup, setCreatingGroup] = useState(false)
+
+  // Modal agregar integrante
   const [addingMemberGroupId, setAddingMemberGroupId] = useState<string | null>(null)
-  const [memberForm, setMemberForm] = useState<StudentForm>(createEmptyStudent())
+  const [allStudents, setAllStudents] = useState<StudentOption[]>([])
+  const [studentSearch, setStudentSearch] = useState('')
   const [savingMember, setSavingMember] = useState(false)
   const [memberError, setMemberError] = useState('')
+
+  // Otros
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null)
+  const [updatingProcessId, setUpdatingProcessId] = useState<string | null>(null)
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null)
+
   const automaticPeriodLabel = getAutomaticPeriodLabel()
 
   const loadCourse = () => {
@@ -111,202 +84,66 @@ export function CourseDetailPage() {
     setLoading(true)
     setError('')
     coursesApi.getById(courseId)
-      .then((r) => {
-        const nextCourse = r.data.data ?? null
-        setCourse(nextCourse)
-      })
+      .then((r) => setCourse(r.data.data ?? null))
       .catch(() => setError('No se pudo cargar el detalle del curso.'))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => {
-    loadCourse()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId])
-
-  const resetGroupModal = () => {
-    setGroupName('')
-    setGroupError('')
-    setNewGroupStudents([createEmptyStudent()])
-    setShowGroupModal(false)
-  }
-
-  const handleCreateGroup = async () => {
-    if (!course?.id || !groupName.trim()) {
-      setGroupError('Escribe el nombre del grupo antes de crearlo.')
-      return
-    }
-
-    const studentsToCreate = newGroupStudents.filter((student) =>
-      student.email || student.firstName || student.lastName || student.nationalId
-    )
-
-    const incompleteRows = studentsToCreate
-      .map((student, index) => ({
-        index,
-        student,
-      }))
-      .filter(({ student }) =>
-        !student.email.trim() ||
-        !student.firstName.trim() ||
-        !student.lastName.trim() ||
-        !student.nationalId.trim()
-      )
-
-    if (incompleteRows.length > 0) {
-      setGroupError(
-        `Completa nombres, apellidos, correo y cédula en ${incompleteRows
-          .map(({ index }) => `Integrante ${index + 1}`)
-          .join(', ')}.`
-      )
-      return
-    }
-
-    const invalidEmailRows = studentsToCreate
-      .map((student, index) => ({
-        index,
-        email: student.email.trim(),
-      }))
-      .filter(({ email }) => !isValidStudentEmail(email))
-
-    if (invalidEmailRows.length > 0) {
-      setGroupError(
-        `Corrige el correo de ${invalidEmailRows
-          .map(({ index, email }) => `Integrante ${index + 1}${email ? ` (${email})` : ''}`)
-          .join(', ')}.`
-      )
-      return
-    }
-
-    const duplicatedEmails = studentsToCreate.reduce<string[]>((acc, student, index, arr) => {
-      const normalized = student.email.trim().toLowerCase()
-      if (!normalized) return acc
-      const firstIndex = arr.findIndex((item) => item.email.trim().toLowerCase() === normalized)
-      if (firstIndex !== index && !acc.includes(normalized)) acc.push(normalized)
-      return acc
-    }, [])
-
-    if (duplicatedEmails.length > 0) {
-      setGroupError(`Hay correos repetidos en el grupo: ${duplicatedEmails.join(', ')}`)
-      return
-    }
-
-    const duplicatedNationalIds = studentsToCreate.reduce<string[]>((acc, student, index, arr) => {
-      const normalized = student.nationalId.trim()
-      if (!normalized) return acc
-      const firstIndex = arr.findIndex((item) => item.nationalId.trim() === normalized)
-      if (firstIndex !== index && !acc.includes(normalized)) acc.push(normalized)
-      return acc
-    }, [])
-
-    if (duplicatedNationalIds.length > 0) {
-      setGroupError(`Hay cédulas repetidas en el grupo: ${duplicatedNationalIds.join(', ')}`)
-      return
-    }
-
-    setCreatingGroup(true)
-    setGroupError('')
-    try {
-      if (studentsToCreate.length === 0) {
-        await groupsApi.create({
-          courseId: course.id,
-          name: groupName.trim(),
-        })
-        resetGroupModal()
-        loadCourse()
-        return
-      }
-
-      const response = await usersApi.bulkImportStudents({
-        courseId: course.id,
-        groupName: groupName.trim(),
-        students: studentsToCreate.map((student) => ({
-          email: student.email.trim(),
-          firstName: student.firstName.trim(),
-          lastName: student.lastName.trim(),
-          nationalId: student.nationalId.trim(),
-        })),
-      })
-
-      const result = response.data.data as {
-        summary?: { created: number; existing: number; errors: number }
-        details?: { errors?: Array<{ row: number; email: string; reason: string }> }
-      }
-      const failedRows = result.details?.errors ?? []
-
-      if (failedRows.length > 0) {
-        const failedEmails = new Set(failedRows.map((item) => item.email.toLowerCase()))
-        setNewGroupStudents(
-          studentsToCreate.filter((student) => failedEmails.has(student.email.trim().toLowerCase()))
-        )
-        setGroupError(
-          `Se creó el grupo, pero ${failedRows.length} integrante(s) fallaron. ${failedRows
-            .slice(0, 3)
-            .map((item) => `Fila ${item.row}: ${item.reason}`)
-            .join(' ')}`
-        )
-        loadCourse()
-        return
-      }
-
-      resetGroupModal()
-      loadCourse()
-
-      if ((result.summary?.existing ?? 0) > 0) {
-        setError(
-          `Grupo creado. ${result.summary?.created ?? 0} estudiantes nuevos y ${result.summary?.existing ?? 0} ya existían.`
-        )
-      }
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setGroupError(msg ?? (err instanceof Error ? err.message : 'No se pudo crear el grupo.'))
-    } finally {
-      setCreatingGroup(false)
-    }
-  }
-
-  const handleNewGroupStudentChange = (
-    studentId: string,
-    key: Exclude<keyof StudentForm, 'id'>,
-    value: string
-  ) => {
-    setNewGroupStudents((prev) => prev.map((student) =>
-      student.id === studentId ? { ...student, [key]: value } : student
-    ))
-  }
-
-  const addStudentRow = () => {
-    setNewGroupStudents((prev) => [...prev, createEmptyStudent()])
-  }
-
-  const removeStudentRow = (studentId: string) => {
-    setNewGroupStudents((prev) => prev.filter((student) => student.id !== studentId))
-  }
+  useEffect(() => { loadCourse() }, [courseId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openAddMember = (groupId: string) => {
-    setMemberForm(createEmptyStudent())
+    setStudentSearch('')
     setMemberError('')
     setAddingMemberGroupId(groupId)
+    usersApi.getAll({ limit: 200 })
+      .then((r) => setAllStudents(
+        (r.data.data ?? []).filter((u: StudentOption & { role: string }) => u.role === 'STUDENT')
+      ))
+      .catch(() => setMemberError('No se pudo cargar la lista de estudiantes.'))
   }
 
   const closeAddMember = () => {
     setAddingMemberGroupId(null)
-    setMemberForm(createEmptyStudent())
+    setAllStudents([])
+    setStudentSearch('')
     setMemberError('')
   }
 
-  const handleAddMember = async () => {
+  // Estudiantes ya en el grupo activo
+  const currentGroupMembers = (() => {
+    if (!addingMemberGroupId || !course) return new Set<string>()
+    const group = course.groups?.find(g => g.id === addingMemberGroupId)
+    return new Set((group?.members ?? []).map(m => m.user?.id).filter(Boolean) as string[])
+  })()
+
+  const filteredStudents = allStudents.filter((s) => {
+    const inGroup = currentGroupMembers.has(s.id)
+    const matchSearch = `${s.firstName} ${s.lastName} ${s.email}`
+      .toLowerCase()
+      .includes(studentSearch.toLowerCase())
+    return !inGroup && matchSearch
+  })
+
+  const handleAddMember = async (student: StudentOption) => {
     if (!addingMemberGroupId) return
-    if (!memberForm.email || !memberForm.firstName || !memberForm.lastName || !memberForm.nationalId) {
-      setMemberError('Completa nombres, apellidos, correo y cédula.')
-      return
-    }
     setSavingMember(true)
     setMemberError('')
     try {
-      await groupsApi.createStudent(addingMemberGroupId, memberForm)
-      closeAddMember()
+      await groupsApi.addMember(addingMemberGroupId, student.id)
       loadCourse()
+      // Actualizar miembros localmente para que desaparezca del listado
+      setCourse(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          groups: prev.groups?.map(g =>
+            g.id !== addingMemberGroupId ? g : {
+              ...g,
+              members: [...(g.members ?? []), { user: student }]
+            }
+          )
+        }
+      })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
       setMemberError(msg ?? 'No se pudo agregar el integrante.')
@@ -315,9 +152,28 @@ export function CourseDetailPage() {
     }
   }
 
+  const handleCreateGroup = async () => {
+    if (!course?.id || !groupName.trim()) {
+      setGroupError('Escribe el nombre del grupo.')
+      return
+    }
+    setCreatingGroup(true)
+    setGroupError('')
+    try {
+      await groupsApi.create({ courseId: course.id, name: groupName.trim() })
+      setGroupName('')
+      setShowGroupModal(false)
+      loadCourse()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setGroupError(msg ?? 'No se pudo crear el grupo.')
+    } finally {
+      setCreatingGroup(false)
+    }
+  }
+
   const handleRemoveMember = async (groupId: string, userId: string, name: string) => {
-    const confirmed = window.confirm(`¿Quitar a ${name} de este grupo?`)
-    if (!confirmed) return
+    if (!window.confirm(`¿Quitar a ${name} de este grupo?`)) return
     setRemovingMemberId(`${groupId}:${userId}`)
     try {
       await groupsApi.removeMember(groupId, userId)
@@ -330,10 +186,8 @@ export function CourseDetailPage() {
     }
   }
 
-  const handleDeleteGroup = async (groupId: string, groupName: string) => {
-    const confirmed = window.confirm(`¿Sí deseas borrar el grupo "${groupName}"?`)
-    if (!confirmed) return
-
+  const handleDeleteGroup = async (groupId: string, name: string) => {
+    if (!window.confirm(`¿Sí deseas borrar el grupo "${name}"?`)) return
     setDeletingGroupId(groupId)
     try {
       await groupsApi.delete(groupId)
@@ -361,9 +215,7 @@ export function CourseDetailPage() {
   }
 
   const handleDeactivateProcess = async (processId: string) => {
-    const confirmed = window.confirm('¿Cerrar este proceso? Una vez cerrado no se pueden enviar más evaluaciones.')
-    if (!confirmed) return
-
+    if (!window.confirm('¿Cerrar este proceso? Una vez cerrado no se pueden enviar más evaluaciones.')) return
     setUpdatingProcessId(processId)
     setError('')
     try {
@@ -378,9 +230,7 @@ export function CourseDetailPage() {
   }
 
   const handleDeleteProcess = async (processId: string, name: string) => {
-    const confirmed = window.confirm(`¿Eliminar el proceso "${name}"? Esta acción no se puede deshacer.`)
-    if (!confirmed) return
-
+    if (!window.confirm(`¿Eliminar el proceso "${name}"? Esta acción no se puede deshacer.`)) return
     setUpdatingProcessId(processId)
     setError('')
     try {
@@ -474,12 +324,13 @@ export function CourseDetailPage() {
         </Card>
 
         <Card className="xl:col-span-2">
-          <CardHeader><CardTitle>Crear grupo de trabajo</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
+          <CardHeader><CardTitle>Grupos de trabajo</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
             <p className="text-xs text-gray-500">
-              Después de crear el curso, registra cada grupo y en el mismo cuadrito agrega uno o varios integrantes.
+              Crea los grupos del curso y luego asocia los estudiantes que ya estén registrados en el sistema.
+              Para crear estudiantes nuevos, usa <strong>Gestión de Usuarios</strong>.
             </p>
-            <Button className="gap-2" onClick={() => { setGroupError(''); setShowGroupModal(true) }}>
+            <Button className="gap-2" onClick={() => { setGroupError(''); setGroupName(''); setShowGroupModal(true) }}>
               <Plus className="w-4 h-4" /> Crear grupo
             </Button>
           </CardContent>
@@ -494,12 +345,9 @@ export function CourseDetailPage() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="font-medium text-gray-900">{group.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {group.members?.length ?? 0} integrantes registrados
-                  </p>
+                  <p className="text-xs text-gray-500">{group.members?.length ?? 0} integrantes</p>
                 </div>
                 <Button
-                  type="button"
                   variant="outline"
                   className="gap-2 text-red-600 hover:text-red-700"
                   onClick={() => handleDeleteGroup(group.id, group.name)}
@@ -511,21 +359,15 @@ export function CourseDetailPage() {
               </div>
 
               <div className="mt-4 rounded-xl bg-gray-50 p-4">
-                <div className="flex items-center justify-between gap-3 mb-2">
-                  <p className="text-sm font-semibold text-gray-900">Integrantes del grupo</p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="gap-1"
-                    onClick={() => openAddMember(group.id)}
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Agregar
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <p className="text-sm font-semibold text-gray-900">Integrantes</p>
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => openAddMember(group.id)}>
+                    <Plus className="w-3.5 h-3.5" /> Agregar estudiante
                   </Button>
                 </div>
-                <div className="mt-2 space-y-2">
+                <div className="space-y-2">
                   {(group.members ?? []).map((member) => {
-                    const memberKey = `${group.id}:${member.user?.id}`
+                    const key = `${group.id}:${member.user?.id}`
                     const fullName = member.user ? `${member.user.firstName} ${member.user.lastName}` : 'Integrante'
                     return (
                       <div key={member.user?.id} className="flex items-center justify-between gap-3 rounded-lg border border-gray-100 bg-white px-3 py-2 text-sm">
@@ -536,18 +378,18 @@ export function CourseDetailPage() {
                         {member.user?.id && (
                           <button
                             type="button"
-                            className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+                            className="text-xs font-medium text-red-600 hover:underline disabled:opacity-50 flex-shrink-0"
                             onClick={() => handleRemoveMember(group.id, member.user!.id, fullName)}
-                            disabled={removingMemberId === memberKey}
+                            disabled={removingMemberId === key}
                           >
-                            {removingMemberId === memberKey ? 'Quitando...' : 'Quitar'}
+                            {removingMemberId === key ? 'Quitando...' : 'Quitar'}
                           </button>
                         )}
                       </div>
                     )
                   })}
                   {(group.members ?? []).length === 0 && (
-                    <p className="text-sm text-gray-500">Aún no hay integrantes registrados en este grupo.</p>
+                    <p className="text-sm text-gray-400">Sin integrantes. Usa el botón para agregar estudiantes existentes.</p>
                   )}
                 </div>
               </div>
@@ -569,13 +411,10 @@ export function CourseDetailPage() {
                   <div>
                     <p className="font-medium text-gray-900">{item.rubric?.name ?? 'Rúbrica sin nombre'}</p>
                     <p className="text-xs text-gray-500">
-                      {item.evaluationType === 'SELF'
-                        ? 'Autoevaluación'
-                        : item.evaluationType === 'PEER'
-                          ? 'Pares'
-                          : item.evaluationType === 'TEACHER'
-                            ? 'Docente'
-                            : inferRubricType(item.rubric?.name)}
+                      {item.evaluationType === 'SELF' ? 'Autoevaluación'
+                        : item.evaluationType === 'PEER' ? 'Pares'
+                        : item.evaluationType === 'TEACHER' ? 'Docente'
+                        : inferRubricType(item.rubric?.name)}
                       {' · '}Versión {item.rubric?.version ?? 1}
                     </p>
                   </div>
@@ -595,10 +434,7 @@ export function CourseDetailPage() {
           <CardHeader><CardTitle>Procesos de evaluación</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {(course.evaluationProcesses ?? []).map((process) => (
-              <div
-                key={process.id}
-                className="w-full rounded-xl border border-gray-100 p-4 hover:border-primary/30 hover:bg-blue-50/20"
-              >
+              <div key={process.id} className="rounded-xl border border-gray-100 p-4 hover:border-primary/30 hover:bg-blue-50/20">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-medium text-gray-900">{process.name}</p>
@@ -609,50 +445,24 @@ export function CourseDetailPage() {
                   </Badge>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/teacher/evaluations/${process.id}`)}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/teacher/evaluations/${process.id}`)}>
                     Ver detalle
                   </Button>
                   {process.status === 'DRAFT' && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => handleActivateProcess(process.id)}
-                      disabled={updatingProcessId === process.id}
-                    >
+                    <Button size="sm" className="gap-1" onClick={() => handleActivateProcess(process.id)} disabled={updatingProcessId === process.id}>
                       {updatingProcessId === process.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
                       Activar proceso
                     </Button>
                   )}
                   {process.status === 'ACTIVE' && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="gap-1 text-amber-600 border-amber-200 hover:bg-amber-50"
-                      onClick={() => handleDeactivateProcess(process.id)}
-                      disabled={updatingProcessId === process.id}
-                    >
+                    <Button size="sm" variant="outline" className="gap-1 text-amber-600 border-amber-200 hover:bg-amber-50" onClick={() => handleDeactivateProcess(process.id)} disabled={updatingProcessId === process.id}>
                       {updatingProcessId === process.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
                       Cerrar proceso
                     </Button>
                   )}
                   {(process.status === 'DRAFT' || process.status === 'ACTIVE') && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="gap-1 text-red-600 border-red-200 hover:bg-red-50"
-                      onClick={() => handleDeleteProcess(process.id, process.name)}
-                      disabled={updatingProcessId === process.id}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Eliminar
+                    <Button size="sm" variant="outline" className="gap-1 text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleDeleteProcess(process.id, process.name)} disabled={updatingProcessId === process.id}>
+                      <Trash2 className="w-3.5 h-3.5" /> Eliminar
                     </Button>
                   )}
                 </div>
@@ -665,173 +475,117 @@ export function CourseDetailPage() {
         </Card>
       </div>
 
-      {addingMemberGroupId && (
+      {/* ── Modal: Crear grupo ── */}
+      {showGroupModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4 mb-5">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Agregar integrante</h2>
+                <h2 className="text-lg font-bold text-gray-900">Crear grupo</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Registra los datos del estudiante que se añadirá al grupo.
+                  Luego podrás agregar estudiantes desde el listado del grupo.
                 </p>
               </div>
-              <button
-                type="button"
-                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                onClick={closeAddMember}
-                disabled={savingMember}
-              >
+              <button type="button" className="rounded-lg p-2 text-gray-400 hover:bg-gray-100" onClick={() => setShowGroupModal(false)} disabled={creatingGroup}>
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-gray-600">Nombre del grupo</label>
               <Input
-                placeholder="Nombres"
-                value={memberForm.firstName}
-                onChange={(e) => setMemberForm((prev) => ({ ...prev, firstName: e.target.value }))}
-              />
-              <Input
-                placeholder="Apellidos"
-                value={memberForm.lastName}
-                onChange={(e) => setMemberForm((prev) => ({ ...prev, lastName: e.target.value }))}
-              />
-              <Input
-                placeholder="Correo"
-                value={memberForm.email}
-                onChange={(e) => setMemberForm((prev) => ({ ...prev, email: e.target.value }))}
-              />
-              <Input
-                placeholder="Cédula"
-                value={memberForm.nationalId}
-                onChange={(e) => setMemberForm((prev) => ({ ...prev, nationalId: e.target.value }))}
+                placeholder="Ejemplo: Grupo 1"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
+                autoFocus
               />
             </div>
 
-            {memberError && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                {memberError}
+            {groupError && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {groupError}
               </div>
             )}
 
-            <div className="mt-6 flex gap-3 border-t border-gray-100 pt-4">
-              <Button variant="outline" className="flex-1" onClick={closeAddMember} disabled={savingMember}>
+            <div className="mt-6 flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowGroupModal(false)} disabled={creatingGroup}>
                 Cancelar
               </Button>
-              <Button className="flex-1 gap-2" onClick={handleAddMember} disabled={savingMember}>
-                {savingMember ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Agregar'}
+              <Button className="flex-1 gap-2" onClick={handleCreateGroup} disabled={creatingGroup}>
+                {creatingGroup ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Crear grupo'}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {showGroupModal && (
+      {/* ── Modal: Agregar estudiante existente ── */}
+      {addingMemberGroupId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
+          <div className="flex max-h-[80vh] w-full max-w-lg flex-col rounded-2xl bg-white shadow-xl">
+            <div className="flex items-start justify-between gap-4 p-5 pb-3">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Crear grupo</h2>
+                <h2 className="text-lg font-bold text-gray-900">Agregar estudiante</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Define el grupo y agrega aquí mismo todos los integrantes que necesites.
+                  Busca y selecciona un estudiante ya registrado en el sistema.
                 </p>
               </div>
-              <button
-                type="button"
-                className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                onClick={resetGroupModal}
-                disabled={creatingGroup}
-              >
+              <button type="button" className="rounded-lg p-2 text-gray-400 hover:bg-gray-100" onClick={closeAddMember} disabled={savingMember}>
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="mt-5 flex-1 space-y-4 overflow-y-auto pr-1">
-              <div>
-                <label className="mb-1 block text-xs font-medium text-gray-600">Nombre del grupo</label>
+            <div className="px-5 pb-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="Ejemplo: Grupo 1"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="Buscar por nombre o correo..."
+                  className="pl-9"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  autoFocus
                 />
               </div>
+            </div>
 
-              <div className="space-y-4">
-                {newGroupStudents.map((student, index) => (
-                  <div key={student.id} className="rounded-xl border border-gray-200 p-4">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-gray-900">Integrante {index + 1}</p>
-                      {newGroupStudents.length > 1 && (
-                        <button
-                          type="button"
-                          className="text-xs font-medium text-red-600 hover:underline"
-                          onClick={() => removeStudentRow(student.id)}
-                          disabled={creatingGroup}
-                        >
-                          Quitar
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                      <Input
-                        id={`group-student-${student.id}-first-name`}
-                        name={`group-student-${student.id}-first-name`}
-                        autoComplete="off"
-                        placeholder="Nombres"
-                        value={student.firstName}
-                        onChange={(e) => handleNewGroupStudentChange(student.id, 'firstName', e.target.value)}
-                      />
-                      <Input
-                        id={`group-student-${student.id}-last-name`}
-                        name={`group-student-${student.id}-last-name`}
-                        autoComplete="off"
-                        placeholder="Apellidos"
-                        value={student.lastName}
-                        onChange={(e) => handleNewGroupStudentChange(student.id, 'lastName', e.target.value)}
-                      />
-                      <Input
-                        id={`group-student-${student.id}-email`}
-                        name={`group-student-${student.id}-email`}
-                        type="email"
-                        autoComplete="off"
-                        autoCapitalize="none"
-                        autoCorrect="off"
-                        inputMode="email"
-                        spellCheck={false}
-                        placeholder="Correo"
-                        value={student.email}
-                        onChange={(e) => handleNewGroupStudentChange(student.id, 'email', e.target.value)}
-                      />
-                      <Input
-                        id={`group-student-${student.id}-national-id`}
-                        name={`group-student-${student.id}-national-id`}
-                        autoComplete="off"
-                        placeholder="Cédula"
-                        value={student.nationalId}
-                        onChange={(e) => handleNewGroupStudentChange(student.id, 'nationalId', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                ))}
+            {memberError && (
+              <div className="mx-5 mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                {memberError}
               </div>
+            )}
 
-              <Button type="button" variant="outline" className="gap-2" onClick={addStudentRow} disabled={creatingGroup}>
-                <Plus className="w-4 h-4" /> Añadir integrante
-              </Button>
-
-              {groupError && (
-                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                  {groupError}
+            <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-1">
+              {filteredStudents.length === 0 ? (
+                <div className="py-8 text-center text-sm text-gray-400">
+                  {allStudents.length === 0
+                    ? 'Cargando estudiantes...'
+                    : studentSearch
+                    ? 'No se encontraron estudiantes con ese criterio.'
+                    : 'Todos los estudiantes ya están en este grupo.'}
                 </div>
+              ) : (
+                filteredStudents.map((student) => (
+                  <button
+                    key={student.id}
+                    type="button"
+                    disabled={savingMember}
+                    onClick={() => handleAddMember(student)}
+                    className="w-full flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 text-left hover:border-primary/40 hover:bg-blue-50/30 transition-colors disabled:opacity-50"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{student.firstName} {student.lastName}</p>
+                      <p className="text-xs text-gray-500 truncate">{student.email}</p>
+                    </div>
+                    <Plus className="w-4 h-4 text-primary flex-shrink-0" />
+                  </button>
+                ))
               )}
             </div>
 
-            <div className="mt-6 flex gap-3 border-t border-gray-100 pt-4">
-              <Button variant="outline" className="flex-1" onClick={resetGroupModal} disabled={creatingGroup}>
-                Cancelar
-              </Button>
-              <Button className="flex-1 gap-2" onClick={handleCreateGroup} disabled={creatingGroup}>
-                {creatingGroup ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar grupo'}
+            <div className="border-t border-gray-100 p-5 pt-3">
+              <Button variant="outline" className="w-full" onClick={closeAddMember} disabled={savingMember}>
+                Cerrar
               </Button>
             </div>
           </div>
