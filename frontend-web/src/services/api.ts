@@ -267,6 +267,11 @@ export const analyticsApi = {
 }
 
 // ── Exports ───────────────────────────────────────────────────────────────────
+export const auditApi = {
+  getLogs: (params?: { page?: number; limit?: number; entity?: string; action?: string }) =>
+    api.get('/audit', { params })
+}
+
 export const exportApi = {
   excel: (processId: string) =>
     downloadExportFile(`/export/excel/${processId}`, `resultados_${processId}.xlsx`),

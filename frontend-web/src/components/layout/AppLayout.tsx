@@ -3,7 +3,7 @@ import { useState } from 'react'
 import {
   LayoutDashboard, Users, BookOpen, FileText,
   ClipboardList, BarChart3, GraduationCap, LogOut, Menu, X,
-  ChevronRight, Bell
+  ChevronRight, Bell, Shield
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/services/api'
@@ -20,6 +20,7 @@ interface NavItem {
 const navItems: Record<Role, NavItem[]> = {
   ADMIN: [
     { label: 'Usuarios', icon: Users, href: '/admin/users' },
+    { label: 'Historial', icon: Shield, href: '/admin/audit' },
   ],
   TEACHER: [
     { label: 'Dashboard', icon: LayoutDashboard, href: '/teacher' },

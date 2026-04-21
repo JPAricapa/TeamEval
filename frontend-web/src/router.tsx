@@ -12,6 +12,7 @@ import { AcceptInvitationPage } from '@/pages/auth/AcceptInvitationPage'
 
 // Admin
 import { UsersPage } from '@/pages/admin/UsersPage'
+import { AuditPage } from '@/pages/admin/AuditPage'
 
 // Teacher
 import { TeacherDashboard } from '@/pages/teacher/TeacherDashboard'
@@ -90,6 +91,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/admin/users" replace /> },
       { path: 'users', element: <UsersPage /> },
+      { path: 'audit', element: <AuditPage /> },
     ],
   },
 

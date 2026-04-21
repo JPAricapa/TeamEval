@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { UserRole } from '../constants/enums';
+import { audit } from '../utils/audit';
 
 type AuthUser = { id: string; role: UserRole; institutionId?: string };
 
@@ -115,10 +116,12 @@ class UserService {
     if (existingNationalId) throw new AppError('La cédula ya está registrada', 409);
 
     const passwordHash = await bcrypt.hash(data.nationalId, 12);
-    return prisma.user.create({
+    const created = await prisma.user.create({
       data: { ...data, email, passwordHash, institutionId: requester.institutionId, isActive: true },
       select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true, createdAt: true, institutionId: true }
     });
+    audit({ userId: requester.id, action: 'USER_CREATED', entity: 'User', entityId: created.id, details: { email, role: data.role } });
+    return created;
   }
 
   async updateUser(id: string, requester: AuthUser, data: { firstName?: string; lastName?: string; email?: string; nationalId?: string; isActive?: boolean }) {
@@ -149,6 +152,7 @@ class UserService {
     }
 
     const user = await prisma.user.update({ where: { id }, data: updateData, select: WITH_MEMBERSHIPS });
+    audit({ userId: requester.id, action: 'USER_UPDATED', entity: 'User', entityId: id, details: { fields: Object.keys(updateData) } });
     return flattenMemberships(user);
   }
 
@@ -181,6 +185,7 @@ class UserService {
       prisma.user.delete({ where: { id } })
     ]);
 
+    audit({ userId: null, action: 'USER_DELETED', entity: 'User', entityId: id, details: { name: `${user.firstName} ${user.lastName}`, role: user.role } });
     return `${user.firstName} ${user.lastName}`;
   }
 
@@ -252,6 +257,7 @@ class UserService {
       }
     }
 
+    audit({ userId: requester.id, action: 'BULK_IMPORT', entity: 'User', entityId: courseId, details: { group: group.name, total: students.length, created: created.length, errors: errors.length } });
     return {
       summary: { total: students.length, created: created.length, existing: existing.length, errors: errors.length },
       group: { id: group.id, name: group.name },

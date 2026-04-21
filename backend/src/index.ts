@@ -27,6 +27,7 @@ import evaluationRoutes from './routes/evaluation.routes';
 import consolidationRoutes from './routes/consolidation.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import exportRoutes from './routes/export.routes';
+import auditRoutes from './routes/audit.routes';
 
 // Middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -120,6 +121,9 @@ app.use(`${API_V1}/analytics`, analyticsRoutes);
 
 // Exportación
 app.use(`${API_V1}/export`, exportRoutes);
+
+// Auditoría (solo admin)
+app.use(`${API_V1}/audit`, auditRoutes);
 
 // ============================================================
 // MANEJO DE ERRORES

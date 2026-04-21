@@ -2,6 +2,7 @@ import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { EvaluationType, EvaluationStatus, ProcessStatus, UserRole } from '../constants/enums';
 import { getRubricForEvaluationType, groupCourseRubricsByType } from '../utils/rubricAssignment';
+import { audit } from '../utils/audit';
 
 type AuthUser = { id: string; role: UserRole; institutionId?: string };
 
@@ -138,7 +139,7 @@ class EvaluationService {
       throw new AppError('El curso debe tener asociadas las rúbricas de autoevaluación, pares y docente.', 400);
     }
 
-    return prisma.evaluationProcess.create({
+    const process = await prisma.evaluationProcess.create({
       data: {
         ...data,
         selfRubricId: selfRubric.id,
@@ -149,6 +150,8 @@ class EvaluationService {
         teacherWeight
       }
     });
+    audit({ userId: null, action: 'PROCESS_CREATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: data.name, courseId } });
+    return process;
   }
 
   async activateProcess(id: string) {
@@ -202,11 +205,14 @@ class EvaluationService {
       prisma.evaluationProcess.update({ where: { id: process.id }, data: { status: ProcessStatus.ACTIVE } })
     ]);
 
+    audit({ userId: null, action: 'PROCESS_ACTIVATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: process.name, evaluationsCreated: evaluationsToCreate.length } });
     return { processId: process.id, evaluationsCreated: evaluationsToCreate.length };
   }
 
   async closeProcess(id: string) {
-    return prisma.evaluationProcess.update({ where: { id }, data: { status: ProcessStatus.CLOSED } });
+    const process = await prisma.evaluationProcess.update({ where: { id }, data: { status: ProcessStatus.CLOSED } });
+    audit({ userId: null, action: 'PROCESS_CLOSED', entity: 'EvaluationProcess', entityId: id, details: { name: process.name } });
+    return process;
   }
 
   async deleteProcess(id: string, user: AuthUser) {
@@ -228,6 +234,7 @@ class EvaluationService {
       prisma.consolidatedResult.deleteMany({ where: { processId: id } }),
       prisma.evaluationProcess.delete({ where: { id } })
     ]);
+    audit({ userId: user.id, action: 'PROCESS_DELETED', entity: 'EvaluationProcess', entityId: id, details: { name: process.name } });
   }
 
   async getMyPending(userId: string) {

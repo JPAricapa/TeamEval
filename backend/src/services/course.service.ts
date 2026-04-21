@@ -1,6 +1,7 @@
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { UserRole } from '../constants/enums';
+import { audit } from '../utils/audit';
 
 type AuthUser = { id: string; role: UserRole; institutionId?: string };
 
@@ -107,7 +108,7 @@ class CourseService {
       orderBy: { createdAt: 'asc' }
     });
 
-    return prisma.course.create({
+    const course = await prisma.course.create({
       data: {
         institutionId: user.institutionId,
         teacherId: user.id,
@@ -122,6 +123,8 @@ class CourseService {
         _count: { select: { groups: true } }
       }
     });
+    audit({ userId: user.id, action: 'COURSE_CREATED', entity: 'Course', entityId: course.id, details: { name: data.name, code: data.code } });
+    return course;
   }
 
   async updateCourse(id: string, data: Record<string, unknown>) {
@@ -157,6 +160,7 @@ class CourseService {
       prisma.group.deleteMany({ where: { courseId } }),
       prisma.course.delete({ where: { id: courseId } })
     ]);
+    audit({ userId: user.id, action: 'COURSE_DELETED', entity: 'Course', entityId: courseId, details: { name: course.name, code: course.code } });
   }
 
   async assignRubric(courseId: string, rubricId: string, evaluationType?: string) {

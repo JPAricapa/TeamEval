@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { UserRole } from '../constants/enums';
+import { audit } from '../utils/audit';
 
 type AuthUser = { id: string; role: UserRole; institutionId?: string };
 
@@ -55,7 +56,9 @@ class GroupService {
     });
     if (existingGroup) throw new AppError('Ya existe un grupo con ese nombre en este curso', 409);
 
-    return prisma.group.create({ data: { ...data, name: normalizedName } });
+    const group = await prisma.group.create({ data: { ...data, name: normalizedName } });
+    audit({ userId: user.id, action: 'GROUP_CREATED', entity: 'Group', entityId: group.id, details: { name: normalizedName, courseId: data.courseId } });
+    return group;
   }
 
   async addMember(groupId: string, userId: string) {
@@ -118,11 +121,14 @@ class GroupService {
     if (user.role === UserRole.TEACHER && group.course.teacherId !== user.id) {
       throw new AppError('No puedes editar grupos de un curso que no te pertenece', 403);
     }
-    return prisma.group.update({ where: { id: groupId }, data: { name: name.trim() }, select: { id: true, name: true } });
+    const updated = await prisma.group.update({ where: { id: groupId }, data: { name: name.trim() }, select: { id: true, name: true } });
+    audit({ userId: user.id, action: 'GROUP_RENAMED', entity: 'Group', entityId: groupId, details: { newName: name.trim(), oldName: group.name } });
+    return updated;
   }
 
   async removeMember(groupId: string, userId: string) {
     await prisma.groupMember.updateMany({ where: { groupId, userId }, data: { isActive: false } });
+    audit({ userId: null, action: 'MEMBER_REMOVED', entity: 'GroupMember', entityId: groupId, details: { userId } });
   }
 
   async deleteGroup(groupId: string, user: AuthUser) {
