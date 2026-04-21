@@ -9,8 +9,35 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum EvaluationType {
+  SELF
+  PEER
+  TEACHER
+}
+
+enum EvaluationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum ProcessStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
 }
 
 // ============================================================
@@ -24,7 +51,7 @@ model User {
   passwordHash    String    @map("password_hash")
   firstName       String    @map("first_name")
   lastName        String    @map("last_name")
-  role            String
+  role            UserRole
   institutionId   String?   @map("institution_id")
   isActive        Boolean   @default(true) @map("is_active")
   avatarUrl       String?   @map("avatar_url")
@@ -366,7 +393,7 @@ model EvaluationProcess {
   teacherRubricId       String?         @map("teacher_rubric_id")
   name                  String
   description           String?
-  status                String          @default("DRAFT")
+  status                ProcessStatus   @default(DRAFT)
   startDate             DateTime?       @map("start_date")
   endDate               DateTime?       @map("end_date")
   selfWeight            Float           @default(0.2) @map("self_weight")
@@ -399,8 +426,8 @@ model Evaluation {
   processId       String            @map("process_id")
   evaluatorId     String            @map("evaluator_id")
   evaluatedId     String            @map("evaluated_id")
-  type            String
-  status          String            @default("PENDING")
+  type            EvaluationType
+  status          EvaluationStatus  @default(PENDING)
   generalComment  String?           @map("general_comment")
   submittedAt     DateTime?         @map("submitted_at")
   createdAt       DateTime          @default(now()) @map("created_at")
@@ -452,8 +479,7 @@ model ConsolidatedResult {
   calculatedAt    DateTime  @default(now()) @map("calculated_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  // Scores por criterio (JSON para flexibilidad)
-  criteriaScores  String?   @map("criteria_scores")
+  criteriaScores  Json?     @map("criteria_scores")
 
   process   EvaluationProcess @relation(fields: [processId], references: [id])
   team      Team?             @relation(fields: [teamId], references: [id])
@@ -475,8 +501,8 @@ model TeamAnalytics {
   cohesionIndex       Float?    @map("cohesion_index")
   minScore            Float?    @map("min_score")
   maxScore            Float?    @map("max_score")
-  outlierStudentIds   String?   @map("outlier_student_ids")
-  criteriaAverages    String?   @map("criteria_averages")
+  outlierStudentIds   Json?     @map("outlier_student_ids")
+  criteriaAverages    Json?     @map("criteria_averages")
   calculatedAt        DateTime  @default(now()) @map("calculated_at")
 
   @@unique([processId, teamId])
@@ -500,9 +526,9 @@ model CourseAnalytics {
   percentile25        Float?    @map("percentile_25")
   percentile75        Float?    @map("percentile_75")
   percentile90        Float?    @map("percentile_90")
-  weakestCriteria     String?   @map("weakest_criteria")
-  scoreDistribution   String?   @map("score_distribution")
-  criteriaAverages    String?   @map("criteria_averages")
+  weakestCriteria     Json?     @map("weakest_criteria")
+  scoreDistribution   Json?     @map("score_distribution")
+  criteriaAverages    Json?     @map("criteria_averages")
   calculatedAt        DateTime  @default(now()) @map("calculated_at")
 
   @@map("course_analytics")

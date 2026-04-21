@@ -182,7 +182,7 @@ export class ConsolidationService {
         teacherScore,
         finalScore,
         overvaluationIndex,
-        criteriaScores: JSON.stringify(criteriaScores)
+        criteriaScores
       },
       update: {
         selfScore,
@@ -190,7 +190,7 @@ export class ConsolidationService {
         teacherScore,
         finalScore,
         overvaluationIndex,
-        criteriaScores: JSON.stringify(criteriaScores),
+        criteriaScores,
         calculatedAt: new Date()
       }
     });
@@ -246,7 +246,7 @@ export class ConsolidationService {
         });
         return {
           ...r,
-          criteriaScores: r.criteriaScores ? JSON.parse(r.criteriaScores) : null,
+          criteriaScores: r.criteriaScores ?? null,
           student: student ? {
             name: `${student.firstName} ${student.lastName}`,
             email: student.email

@@ -276,15 +276,15 @@ export class AnalyticsService {
         cohesionIndex,
         minScore: finalScores.length > 0 ? Math.min(...finalScores) : null,
         maxScore: finalScores.length > 0 ? Math.max(...finalScores) : null,
-        outlierStudentIds: JSON.stringify(outlierIds),
-        criteriaAverages: JSON.stringify(criteriaAverages)
+        outlierStudentIds: outlierIds,
+        criteriaAverages
       },
       update: {
         averageScore, standardDeviation, cohesionIndex,
         minScore: finalScores.length > 0 ? Math.min(...finalScores) : null,
         maxScore: finalScores.length > 0 ? Math.max(...finalScores) : null,
-        outlierStudentIds: JSON.stringify(outlierIds),
-        criteriaAverages: JSON.stringify(criteriaAverages),
+        outlierStudentIds: outlierIds,
+        criteriaAverages,
         calculatedAt: new Date()
       }
     });
@@ -360,7 +360,7 @@ export class AnalyticsService {
     for (const criterion of getAllProcessCriteria(process)) {
       const vals = results
         .map((r) => {
-          const cs = r.criteriaScores ? JSON.parse(r.criteriaScores) as Record<string, number> : null;
+          const cs = r.criteriaScores as Record<string, number> | null;
           return cs ? cs[criterion.id] : null;
         })
         .filter((v): v is number => v !== null);
@@ -401,18 +401,18 @@ export class AnalyticsService {
         percentile25,
         percentile75,
         percentile90,
-        weakestCriteria: JSON.stringify(sortedCriteria),
-        scoreDistribution: JSON.stringify(distribution),
-        criteriaAverages: JSON.stringify(criteriaAverages)
+        weakestCriteria: sortedCriteria,
+        scoreDistribution: distribution,
+        criteriaAverages
       },
       update: {
         totalStudents: results.length,
         completionRate, averageScore: mean, medianScore: median,
         standardDeviation, variance,
         percentile25, percentile75, percentile90,
-        weakestCriteria: JSON.stringify(sortedCriteria),
-        scoreDistribution: JSON.stringify(distribution),
-        criteriaAverages: JSON.stringify(criteriaAverages),
+        weakestCriteria: sortedCriteria,
+        scoreDistribution: distribution,
+        criteriaAverages,
         calculatedAt: new Date()
       }
     });
