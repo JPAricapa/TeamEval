@@ -233,10 +233,10 @@ export function UsersPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
-                            {user.firstName[0]}{user.lastName[0]}
+                            {toTitleCase(user.firstName)[0]}{toTitleCase(user.lastName)[0]}
                           </div>
                           <div>
-                            <p className="font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                            <p className="font-medium text-gray-900">{toTitleCase(user.firstName)} {toTitleCase(user.lastName)}</p>
                           </div>
                         </div>
                       </td>
