@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/store/authStore'
 import { evaluationsApi } from '@/services/api'
+import { toTitleCase } from '@/lib/utils'
 import type { Evaluation } from '@/types'
 
 const typeLabel: Record<string, { label: string; color: string }> = {
@@ -99,20 +100,22 @@ export function StudentDashboard() {
               const t = typeLabel[ev.type]
               const isSelf = ev.type === 'SELF'
               const evaluated = ev.evaluatee ?? ev.evaluated
-              const evaluateeName = evaluated ? `${evaluated.firstName} ${evaluated.lastName}` : undefined
+              const fn = evaluated ? toTitleCase(evaluated.firstName) : ''
+              const ln = evaluated ? toTitleCase(evaluated.lastName) : ''
+              const evaluateeName = evaluated ? `${fn} ${ln}` : undefined
               return (
                 <div key={ev.id}
                   className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 hover:border-primary/30 hover:bg-blue-50/30 cursor-pointer transition-all"
                   onClick={() => navigate(`/student/evaluations/${ev.id}`, { state: { evaluateeName } })}>
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                      {isSelf ? 'YO' : (evaluated ? `${evaluated.firstName[0]}${evaluated.lastName[0]}` : '?')}
+                      {isSelf ? 'YO' : (evaluated ? `${fn[0]}${ln[0]}` : '?')}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">
                         {isSelf
                           ? 'Autoevaluación'
-                          : (evaluated ? `Evaluar a ${evaluated.firstName} ${evaluated.lastName}` : 'Evaluar compañero')}
+                          : (evaluated ? `Evaluar a ${fn} ${ln}` : 'Evaluar compañero')}
                       </p>
                       <span className={`inline-flex text-xs px-2 py-0.5 rounded-full font-medium mt-0.5 ${t.color}`}>
                         {t.label}
