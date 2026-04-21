@@ -59,7 +59,11 @@ class GroupService {
   }
 
   async addMember(groupId: string, userId: string) {
-    return prisma.groupMember.create({ data: { groupId, userId } });
+    return prisma.groupMember.upsert({
+      where: { groupId_userId: { groupId, userId } },
+      create: { groupId, userId, isActive: true },
+      update: { isActive: true },
+    });
   }
 
   async addStudent(groupId: string, requester: AuthUser, studentData: {
