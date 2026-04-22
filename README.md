@@ -30,8 +30,8 @@ Cuenta semilla: configurada en `backend/prisma/seed.ts` (ver variables de entorn
 
 | Servicio | Plataforma |
 |----------|-----------|
-| Frontend | Vercel — root: `frontend-web`, output: `dist` |
-| Backend | Render — root: `backend`, start: `npm run start:render` |
+| Frontend | Vercel — branch: `main`, root: `frontend-web`, output: `dist` |
+| Backend | Render — branch: `main`, root: `backend`, start: `npm run start:render` |
 | Base de datos | Supabase (PostgreSQL) |
 
 ### Variables de entorno mínimas
@@ -50,5 +50,15 @@ FRONTEND_URL=https://tu-frontend.vercel.app
 ```
 VITE_API_URL=https://tu-backend.onrender.com/api/v1
 ```
+
+### Rama de producción en Vercel
+
+Configura el proyecto para desplegar desde la rama `main`.
+Si el proyecto de Vercel todavía apunta a `master`, cambia **Settings → Environments → Production → Branch Tracking** a `main`.
+
+### Rama de producción en Render
+
+Configura el servicio para desplegar desde la rama `main`.
+Si el servicio de Render todavía apunta a `master`, actualiza la rama vinculada del servicio a `main`.
 
 > El seed es idempotente. `start:render` corre migraciones y seed automáticamente al arrancar.

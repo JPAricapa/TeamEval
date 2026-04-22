@@ -21,3 +21,4 @@ backend/exports/
 coverage/
 *.log
 .DS_Store
+.vercel
