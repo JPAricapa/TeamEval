@@ -58,18 +58,18 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  // Relaciones
-  institution       Institution?        @relation(fields: [institutionId], references: [id])
-  teacherCourses    Course[]            @relation("TeacherCourses")
-  studentGroups     GroupMember[]
-  teamMemberships   TeamMember[]
+  institution           Institution?        @relation(fields: [institutionId], references: [id])
+  teacherCourses        Course[]            @relation("TeacherCourses")
+  studentGroups         GroupMember[]
+  teamMemberships       TeamMember[]
   refreshTokens         RefreshToken[]
   passwordResetTokens   PasswordResetToken[]
   invitations           UserInvitation[]
   evaluationsGiven      Evaluation[]        @relation("EvaluatorRelation")
-  evaluationsReceived Evaluation[]      @relation("EvaluatedRelation")
-  rubrics           Rubric[]            @relation("RubricCreator")
-  auditLogs         AuditLog[]
+  evaluationsReceived   Evaluation[]        @relation("EvaluatedRelation")
+  rubrics               Rubric[]            @relation("RubricCreator")
+  consolidatedResults   ConsolidatedResult[]
+  auditLogs             AuditLog[]
 
   @@map("users")
 }
@@ -204,13 +204,14 @@ model Course {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  institution     Institution     @relation(fields: [institutionId], references: [id])
-  program         Program?        @relation(fields: [programId], references: [id])
-  period          AcademicPeriod  @relation(fields: [periodId], references: [id])
-  teacher         User            @relation("TeacherCourses", fields: [teacherId], references: [id])
-  groups          Group[]
+  institution         Institution       @relation(fields: [institutionId], references: [id])
+  program             Program?          @relation(fields: [programId], references: [id])
+  period              AcademicPeriod    @relation(fields: [periodId], references: [id])
+  teacher             User              @relation("TeacherCourses", fields: [teacherId], references: [id])
+  groups              Group[]
   evaluationProcesses EvaluationProcess[]
-  courseRubrics   CourseRubric[]
+  courseRubrics       CourseRubric[]
+  courseAnalytics     CourseAnalytics[]
 
   @@map("courses")
 }
@@ -266,9 +267,10 @@ model Team {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  group     Group         @relation(fields: [groupId], references: [id])
-  members   TeamMember[]
-  results   ConsolidatedResult[]
+  group         Group           @relation(fields: [groupId], references: [id])
+  members       TeamMember[]
+  results       ConsolidatedResult[]
+  teamAnalytics TeamAnalytics[]
 
   @@map("teams")
 }
@@ -303,7 +305,7 @@ model Rubric {
   name          String
   description   String?
   version       Int       @default(1)
-  parentId      String?   @map("parent_id")   // Para versionamiento
+  parentId      String?   @map("parent_id")
   isPublic      Boolean   @default(false) @map("is_public")
   isActive      Boolean   @default(true) @map("is_active")
   createdAt     DateTime  @default(now()) @map("created_at")
@@ -315,7 +317,6 @@ model Rubric {
   versions        Rubric[]        @relation("RubricVersions")
   criteria        RubricCriteria[]
   courseRubrics   CourseRubric[]
-  legacyEvaluationProcesses  EvaluationProcess[] @relation("LegacyProcessRubric")
   selfEvaluationProcesses    EvaluationProcess[] @relation("SelfRubric")
   peerEvaluationProcesses    EvaluationProcess[] @relation("PeerRubric")
   teacherEvaluationProcesses EvaluationProcess[] @relation("TeacherRubric")
@@ -367,11 +368,11 @@ model PerformanceLevel {
 // ============================================================
 
 model CourseRubric {
-  id          String    @id @default(uuid())
-  courseId    String    @map("course_id")
-  rubricId    String    @map("rubric_id")
-  evaluationType String? @map("evaluation_type")
-  assignedAt  DateTime  @default(now()) @map("assigned_at")
+  id             String          @id @default(uuid())
+  courseId       String          @map("course_id")
+  rubricId       String          @map("rubric_id")
+  evaluationType EvaluationType? @map("evaluation_type")
+  assignedAt     DateTime        @default(now()) @map("assigned_at")
 
   course  Course  @relation(fields: [courseId], references: [id])
   rubric  Rubric  @relation(fields: [rubricId], references: [id])
@@ -387,7 +388,6 @@ model CourseRubric {
 model EvaluationProcess {
   id                    String          @id @default(uuid())
   courseId              String          @map("course_id")
-  rubricId              String?         @map("rubric_id")
   selfRubricId          String?         @map("self_rubric_id")
   peerRubricId          String?         @map("peer_rubric_id")
   teacherRubricId       String?         @map("teacher_rubric_id")
@@ -406,13 +406,14 @@ model EvaluationProcess {
   createdAt             DateTime        @default(now()) @map("created_at")
   updatedAt             DateTime        @updatedAt @map("updated_at")
 
-  course        Course        @relation(fields: [courseId], references: [id])
-  legacyRubric  Rubric?       @relation("LegacyProcessRubric", fields: [rubricId], references: [id])
-  selfRubric    Rubric?       @relation("SelfRubric", fields: [selfRubricId], references: [id])
-  peerRubric    Rubric?       @relation("PeerRubric", fields: [peerRubricId], references: [id])
-  teacherRubric Rubric?       @relation("TeacherRubric", fields: [teacherRubricId], references: [id])
-  evaluations   Evaluation[]
-  results       ConsolidatedResult[]
+  course          Course          @relation(fields: [courseId], references: [id])
+  selfRubric      Rubric?         @relation("SelfRubric", fields: [selfRubricId], references: [id])
+  peerRubric      Rubric?         @relation("PeerRubric", fields: [peerRubricId], references: [id])
+  teacherRubric   Rubric?         @relation("TeacherRubric", fields: [teacherRubricId], references: [id])
+  evaluations     Evaluation[]
+  results         ConsolidatedResult[]
+  teamAnalytics   TeamAnalytics[]
+  courseAnalytics CourseAnalytics?
 
   @@map("evaluation_processes")
 }
@@ -447,13 +448,13 @@ model Evaluation {
 // ============================================================
 
 model EvaluationScore {
-  id          String    @id @default(uuid())
-  evaluationId  String  @map("evaluation_id")
-  criteriaId    String  @map("criteria_id")
+  id            String    @id @default(uuid())
+  evaluationId  String    @map("evaluation_id")
+  criteriaId    String    @map("criteria_id")
   score         Float
   comment       String?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   evaluation  Evaluation      @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
   criteria    RubricCriteria  @relation(fields: [criteriaId], references: [id])
@@ -467,22 +468,22 @@ model EvaluationScore {
 // ============================================================
 
 model ConsolidatedResult {
-  id              String    @id @default(uuid())
-  processId       String    @map("process_id")
-  studentId       String    @map("student_id")
-  teamId          String?   @map("team_id")
-  selfScore       Float?    @map("self_score")
-  peerScore       Float?    @map("peer_score")
-  teacherScore    Float?    @map("teacher_score")
-  finalScore      Float?    @map("final_score")
-  overvaluationIndex Float? @map("overvaluation_index")
-  calculatedAt    DateTime  @default(now()) @map("calculated_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id                 String    @id @default(uuid())
+  processId          String    @map("process_id")
+  studentId          String    @map("student_id")
+  teamId             String?   @map("team_id")
+  selfScore          Float?    @map("self_score")
+  peerScore          Float?    @map("peer_score")
+  teacherScore       Float?    @map("teacher_score")
+  finalScore         Float?    @map("final_score")
+  overvaluationIndex Float?    @map("overvaluation_index")
+  calculatedAt       DateTime  @default(now()) @map("calculated_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  criteriaScores     Json?     @map("criteria_scores")
 
-  criteriaScores  Json?     @map("criteria_scores")
-
-  process   EvaluationProcess @relation(fields: [processId], references: [id])
-  team      Team?             @relation(fields: [teamId], references: [id])
+  process  EvaluationProcess @relation(fields: [processId], references: [id])
+  student  User              @relation(fields: [studentId], references: [id])
+  team     Team?             @relation(fields: [teamId], references: [id])
 
   @@unique([processId, studentId])
   @@map("consolidated_results")
@@ -493,17 +494,20 @@ model ConsolidatedResult {
 // ============================================================
 
 model TeamAnalytics {
-  id                  String    @id @default(uuid())
-  processId           String    @map("process_id")
-  teamId              String    @map("team_id")
-  averageScore        Float?    @map("average_score")
-  standardDeviation   Float?    @map("standard_deviation")
-  cohesionIndex       Float?    @map("cohesion_index")
-  minScore            Float?    @map("min_score")
-  maxScore            Float?    @map("max_score")
-  outlierStudentIds   Json?     @map("outlier_student_ids")
-  criteriaAverages    Json?     @map("criteria_averages")
-  calculatedAt        DateTime  @default(now()) @map("calculated_at")
+  id                String    @id @default(uuid())
+  processId         String    @map("process_id")
+  teamId            String    @map("team_id")
+  averageScore      Float?    @map("average_score")
+  standardDeviation Float?    @map("standard_deviation")
+  cohesionIndex     Float?    @map("cohesion_index")
+  minScore          Float?    @map("min_score")
+  maxScore          Float?    @map("max_score")
+  outlierStudentIds Json?     @map("outlier_student_ids")
+  criteriaAverages  Json?     @map("criteria_averages")
+  calculatedAt      DateTime  @default(now()) @map("calculated_at")
+
+  process  EvaluationProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+  team     Team              @relation(fields: [teamId], references: [id])
 
   @@unique([processId, teamId])
   @@map("team_analytics")
@@ -514,22 +518,25 @@ model TeamAnalytics {
 // ============================================================
 
 model CourseAnalytics {
-  id                  String    @id @default(uuid())
-  processId           String    @unique @map("process_id")
-  courseId            String    @map("course_id")
-  totalStudents       Int       @map("total_students")
-  completionRate      Float     @map("completion_rate")
-  averageScore        Float?    @map("average_score")
-  medianScore         Float?    @map("median_score")
-  standardDeviation   Float?    @map("standard_deviation")
-  variance            Float?
-  percentile25        Float?    @map("percentile_25")
-  percentile75        Float?    @map("percentile_75")
-  percentile90        Float?    @map("percentile_90")
-  weakestCriteria     Json?     @map("weakest_criteria")
-  scoreDistribution   Json?     @map("score_distribution")
-  criteriaAverages    Json?     @map("criteria_averages")
-  calculatedAt        DateTime  @default(now()) @map("calculated_at")
+  id                String    @id @default(uuid())
+  processId         String    @unique @map("process_id")
+  courseId          String    @map("course_id")
+  totalStudents     Int       @map("total_students")
+  completionRate    Float     @map("completion_rate")
+  averageScore      Float?    @map("average_score")
+  medianScore       Float?    @map("median_score")
+  standardDeviation Float?    @map("standard_deviation")
+  variance          Float?
+  percentile25      Float?    @map("percentile_25")
+  percentile75      Float?    @map("percentile_75")
+  percentile90      Float?    @map("percentile_90")
+  weakestCriteria   Json?     @map("weakest_criteria")
+  scoreDistribution Json?     @map("score_distribution")
+  criteriaAverages  Json?     @map("criteria_averages")
+  calculatedAt      DateTime  @default(now()) @map("calculated_at")
+
+  process  EvaluationProcess @relation(fields: [processId], references: [id], onDelete: Cascade)
+  course   Course            @relation(fields: [courseId], references: [id])
 
   @@map("course_analytics")
 }
@@ -550,7 +557,7 @@ model AuditLog {
   userAgent   String?   @map("user_agent")
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  user  User? @relation(fields: [userId], references: [id])
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
 }

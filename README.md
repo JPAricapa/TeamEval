@@ -14,7 +14,7 @@ npm run dev                  # http://localhost:3000
 cd frontend-web && npm install && npm run dev   # http://localhost:5173
 ```
 
-Cuenta semilla: `jaldana@uniquindio.edu.co` / `TeamEval2024!`
+Cuenta semilla: configurada en `backend/prisma/seed.ts` (ver variables de entorno locales).
 
 ## Stack
 

@@ -18,8 +18,6 @@ type RubricSummary = {
 };
 
 type ProcessRubrics = {
-  rubricId?: string | null;
-  legacyRubric?: RubricSummary | null;
   selfRubric?: RubricSummary | null;
   peerRubric?: RubricSummary | null;
   teacherRubric?: RubricSummary | null;
@@ -290,7 +288,7 @@ class EvaluationService {
       throw new AppError('Sin permisos para ver esta evaluación', 403);
     }
 
-    const rubric = await this.resolveEvaluationRubric(evaluation.process, evaluation.type, true);
+    const rubric = this.resolveEvaluationRubric(evaluation.process, evaluation.type);
     return { ...evaluation, process: { ...evaluation.process, rubric } };
   }
 
@@ -315,7 +313,7 @@ class EvaluationService {
     if (evaluation.status === EvaluationStatus.COMPLETED) throw new AppError('Esta evaluación ya fue completada', 400);
     if (evaluation.process.status !== ProcessStatus.ACTIVE) throw new AppError('El proceso de evaluación no está activo', 400);
 
-    const rubric = await this.resolveEvaluationRubric(evaluation.process, evaluation.type, true);
+    const rubric = this.resolveEvaluationRubric(evaluation.process, evaluation.type);
     if (!rubric) throw new AppError('No hay una rúbrica configurada para este tipo de evaluación.', 400);
 
     const criteriaIds = (rubric.criteria ?? []).map(c => c.id);
@@ -353,14 +351,8 @@ class EvaluationService {
     });
   }
 
-  private async resolveEvaluationRubric(process: ProcessRubrics, evaluationType: string, includePerformanceLevels: boolean) {
-    const typedRubric = getRubricForEvaluationType(process, evaluationType);
-    if (typedRubric) return typedRubric;
-    if (!process.rubricId) return null;
-    return prisma.rubric.findUnique({
-      where: { id: process.rubricId },
-      include: { criteria: includePerformanceLevels ? { include: { performanceLevels: true } } : true }
-    });
+  private resolveEvaluationRubric(process: ProcessRubrics, evaluationType: string) {
+    return getRubricForEvaluationType(process, evaluationType);
   }
 }
 

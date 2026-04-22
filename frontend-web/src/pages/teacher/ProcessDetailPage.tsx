@@ -48,7 +48,6 @@ type ProcessDetail = {
     code: string
     groups?: GroupSummary[]
   }
-  legacyRubric?: { name: string; version: number }
   selfRubric?: { name: string; version: number }
   peerRubric?: { name: string; version: number }
   teacherRubric?: { name: string; version: number }
@@ -247,8 +246,8 @@ export function ProcessDetailPage() {
           </div>
           <p className="text-sm text-gray-500 mt-0.5">
             {process.course ? `${process.course.name} (${process.course.code})` : 'Sin curso'}
-            {[process.legacyRubric?.name, process.selfRubric?.name, process.peerRubric?.name, process.teacherRubric?.name].filter(Boolean).length > 0
-              ? ` · ${[process.legacyRubric?.name, process.selfRubric?.name, process.peerRubric?.name, process.teacherRubric?.name].filter(Boolean).join(' · ')}`
+            {[process.selfRubric?.name, process.peerRubric?.name, process.teacherRubric?.name].filter(Boolean).length > 0
+              ? ` · ${[process.selfRubric?.name, process.peerRubric?.name, process.teacherRubric?.name].filter(Boolean).join(' · ')}`
               : ''}
           </p>
         </div>

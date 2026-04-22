@@ -130,15 +130,12 @@ export interface EvaluationProcess {
   teacherWeight: number
   courseId: string
   course?: Course
-  rubricId?: string
-  legacyRubric?: Rubric
   selfRubricId?: string
   peerRubricId?: string
   teacherRubricId?: string
   selfRubric?: Rubric
   peerRubric?: Rubric
   teacherRubric?: Rubric
-  rubric?: Rubric
   startDate?: string
   endDate?: string
   createdAt: string

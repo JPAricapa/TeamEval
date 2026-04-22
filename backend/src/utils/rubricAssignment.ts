@@ -14,7 +14,6 @@ type CourseRubricLike<T extends RubricLike> = {
 };
 
 type ProcessRubricsLike<T extends RubricLike> = {
-  legacyRubric?: T | null;
   selfRubric?: T | null;
   peerRubric?: T | null;
   teacherRubric?: T | null;
@@ -59,16 +58,16 @@ export function getRubricForEvaluationType<T extends RubricLike>(
   process: ProcessRubricsLike<T>,
   evaluationType: string
 ) {
-  if (evaluationType === EvaluationType.SELF) return process.selfRubric ?? process.legacyRubric ?? null;
-  if (evaluationType === EvaluationType.PEER) return process.peerRubric ?? process.legacyRubric ?? null;
-  if (evaluationType === EvaluationType.TEACHER) return process.teacherRubric ?? process.legacyRubric ?? null;
-  return process.legacyRubric ?? null;
+  if (evaluationType === EvaluationType.SELF) return process.selfRubric ?? null;
+  if (evaluationType === EvaluationType.PEER) return process.peerRubric ?? null;
+  if (evaluationType === EvaluationType.TEACHER) return process.teacherRubric ?? null;
+  return null;
 }
 
 export function getAllProcessCriteria<T extends RubricLike>(process: ProcessRubricsLike<T>) {
   const criteriaMap = new Map<string, { id: string; name: string; weight: number }>();
 
-  [process.selfRubric, process.peerRubric, process.teacherRubric, process.legacyRubric]
+  [process.selfRubric, process.peerRubric, process.teacherRubric]
     .filter((rubric): rubric is T => Boolean(rubric))
     .forEach((rubric) => {
       (rubric.criteria ?? []).forEach((criterion) => {
