@@ -124,14 +124,6 @@ VITE_API_URL=http://localhost:3000/api/v1
 
 Archivo de referencia: [frontend-web/.env.example](/home/juan-pablo/teameval-platform/frontend-web/.env.example:1)
 
-## Cuenta semilla
-
-En una base recién sembrada con `npm run prisma:seed`, se crea este usuario:
-
-- Rol: `ADMIN` (también actúa como docente)
-- Email: `jaldana@uniquindio.edu.co`
-- Cédula: `1012345678`
-- Contraseña inicial: `1012345678`
 
 Importante: el login es por `email + password`, no por cédula como usuario.
 
@@ -212,7 +204,6 @@ FRONTEND_URL=https://tu-frontend.vercel.app
 - Vercel debe desplegar desde `main`.
 - Render debe desplegar desde `main`.
 
-Si alguno sigue apuntando a `master`, cambia la rama en la configuración del servicio antes de esperar auto-deploys correctos.
 
 ## Endpoints principales
 
