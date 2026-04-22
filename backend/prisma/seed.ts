@@ -185,10 +185,11 @@ async function main() {
   // ============================================================
   // USUARIO ADMIN (también docente)
   // ============================================================
-  const adminPassword = await bcrypt.hash('TeamEval2024!', 12);
+  const ADMIN_NATIONAL_ID = '1012345678';
+  const adminPassword = await bcrypt.hash(ADMIN_NATIONAL_ID, 12);
   const adminData = {
     email: 'jaldana@uniquindio.edu.co',
-    nationalId: '1012345678',
+    nationalId: ADMIN_NATIONAL_ID,
     passwordHash: adminPassword,
     firstName: 'Jorge Alejandro',
     lastName: 'Aldana Gutierrez',
@@ -402,10 +403,7 @@ async function main() {
 
   console.log('\n🎉 Seed completado.');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('Ingresa con:');
-  console.log('  Email:   jaldana@uniquindio.edu.co');
-  console.log('  Clave:   TeamEval2024!');
-  console.log('');
+  console.log('Ingresa con el email del admin y su cédula como contraseña.');
   console.log('Desde ahí puedes crear cursos, importar estudiantes por CSV');
   console.log('y lanzar procesos de evaluación.');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
