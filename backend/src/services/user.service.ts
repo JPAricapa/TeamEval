@@ -156,7 +156,7 @@ class UserService {
     return flattenMemberships(user);
   }
 
-  async deleteUser(id: string) {
+  async deleteUser(id: string, requester: AuthUser) {
     const user = await prisma.user.findUnique({
       where: { id },
       select: {
@@ -185,7 +185,7 @@ class UserService {
       prisma.user.delete({ where: { id } })
     ]);
 
-    audit({ userId: null, action: 'USER_DELETED', entity: 'User', entityId: id, details: { name: `${user.firstName} ${user.lastName}`, role: user.role } });
+    audit({ userId: requester.id, action: 'USER_DELETED', entity: 'User', entityId: id, details: { name: `${user.firstName} ${user.lastName}`, role: user.role } });
     return `${user.firstName} ${user.lastName}`;
   }
 

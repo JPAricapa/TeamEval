@@ -126,9 +126,9 @@ class GroupService {
     return updated;
   }
 
-  async removeMember(groupId: string, userId: string) {
-    await prisma.groupMember.updateMany({ where: { groupId, userId }, data: { isActive: false } });
-    audit({ userId: null, action: 'MEMBER_REMOVED', entity: 'GroupMember', entityId: groupId, details: { userId } });
+  async removeMember(groupId: string, memberId: string, actor?: AuthUser) {
+    await prisma.groupMember.updateMany({ where: { groupId, userId: memberId }, data: { isActive: false } });
+    audit({ userId: actor?.id ?? null, action: 'MEMBER_REMOVED', entity: 'GroupMember', entityId: groupId, details: { memberId } });
   }
 
   async deleteGroup(groupId: string, user: AuthUser) {

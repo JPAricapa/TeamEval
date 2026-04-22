@@ -120,7 +120,7 @@ class EvaluationService {
     selfWeight?: number; peerWeight?: number; teacherWeight?: number;
     includeSelf?: boolean; includePeer?: boolean; includeTeacher?: boolean;
     allowAnonymousPeer?: boolean;
-  }) {
+  }, actorId?: string) {
     const { courseId, selfWeight = 0.2, peerWeight = 0.5, teacherWeight = 0.3 } = data;
 
     const total = selfWeight + peerWeight + teacherWeight;
@@ -150,11 +150,11 @@ class EvaluationService {
         teacherWeight
       }
     });
-    audit({ userId: null, action: 'PROCESS_CREATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: data.name, courseId } });
+    audit({ userId: actorId ?? null, action: 'PROCESS_CREATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: data.name, courseId } });
     return process;
   }
 
-  async activateProcess(id: string) {
+  async activateProcess(id: string, actorId?: string) {
     const process = await prisma.evaluationProcess.findUnique({
       where: { id },
       include: {
@@ -205,13 +205,13 @@ class EvaluationService {
       prisma.evaluationProcess.update({ where: { id: process.id }, data: { status: ProcessStatus.ACTIVE } })
     ]);
 
-    audit({ userId: null, action: 'PROCESS_ACTIVATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: process.name, evaluationsCreated: evaluationsToCreate.length } });
+    audit({ userId: actorId ?? null, action: 'PROCESS_ACTIVATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: process.name, evaluationsCreated: evaluationsToCreate.length } });
     return { processId: process.id, evaluationsCreated: evaluationsToCreate.length };
   }
 
-  async closeProcess(id: string) {
+  async closeProcess(id: string, actorId?: string) {
     const process = await prisma.evaluationProcess.update({ where: { id }, data: { status: ProcessStatus.CLOSED } });
-    audit({ userId: null, action: 'PROCESS_CLOSED', entity: 'EvaluationProcess', entityId: id, details: { name: process.name } });
+    audit({ userId: actorId ?? null, action: 'PROCESS_CLOSED', entity: 'EvaluationProcess', entityId: id, details: { name: process.name } });
     return process;
   }
 

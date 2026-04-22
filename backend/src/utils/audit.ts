@@ -17,5 +17,5 @@ export function audit(params: AuditParams): void {
       entityId: params.entityId ?? null,
       newValues: params.details ? JSON.stringify(params.details) : null
     }
-  }).catch(() => {});
+  }).catch((e) => { console.error('[audit] failed to write log:', e); });
 }

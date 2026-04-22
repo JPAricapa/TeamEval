@@ -108,7 +108,7 @@ router.delete('/:id', adminOnly,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const name = await userService.deleteUser(req.params.id);
+      const name = await userService.deleteUser(req.params.id, req.user!);
       sendSuccess(res, null, `Usuario eliminado: ${name}`);
     } catch (error) { next(error); }
   }

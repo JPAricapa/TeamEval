@@ -46,7 +46,7 @@ router.post('/processes', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const process = await evaluationService.createProcess(req.body);
+      const process = await evaluationService.createProcess(req.body, req.user?.id);
       sendCreated(res, process, 'Proceso de evaluación creado');
     } catch (error) { next(error); }
   }
@@ -56,7 +56,7 @@ router.post('/processes/:id/activate', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await evaluationService.activateProcess(req.params.id);
+      const result = await evaluationService.activateProcess(req.params.id, req.user?.id);
       sendSuccess(res, result, `Proceso activado. ${result.evaluationsCreated} evaluaciones generadas.`);
     } catch (error) { next(error); }
   }
@@ -66,7 +66,7 @@ router.patch('/processes/:id/close', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const process = await evaluationService.closeProcess(req.params.id);
+      const process = await evaluationService.closeProcess(req.params.id, req.user?.id);
       sendSuccess(res, process, 'Proceso cerrado');
     } catch (error) { next(error); }
   }

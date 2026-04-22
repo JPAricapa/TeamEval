@@ -74,7 +74,7 @@ router.delete('/:id/members/:userId', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await groupService.removeMember(req.params.id, req.params.userId);
+      await groupService.removeMember(req.params.id, req.params.userId, req.user!);
       sendSuccess(res, null, 'Estudiante removido del grupo');
     } catch (error) { next(error); }
   }
