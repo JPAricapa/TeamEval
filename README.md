@@ -221,8 +221,9 @@ Rutas base relevantes del backend:
 - `/api/v1/export`
 - `/api/v1/audit`
 
-## Notas operativas
+## Operación en producción
 
-- `npm run start:render` ejecuta migraciones y seed antes de arrancar la API.
-- El seed es idempotente, pero puede sobrescribir datos base como el usuario administrador.
-- Si ya existe una base con datos antiguos, la contraseña real del admin puede no coincidir con la del seed hasta que se vuelva a sincronizar o se resetee manualmente.
+- Para despliegues en Render, usa `npm run start:render`.
+- Para otros entornos, compila primero con `npm run build` y arranca la API con `npm run start`.
+- Ejecuta el seed sólo en bases nuevas o en reinicializaciones controladas.
+- No dependas del seed para gestionar credenciales en ambientes ya operativos; los cambios de contraseña deben hacerse de forma explícita.
