@@ -2,36 +2,21 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   AlertCircle,
-  BarChart3,
-  BookOpenCheck,
   Eye,
   EyeOff,
   GraduationCap,
   Loader2,
   ShieldCheck,
-  UsersRound,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-const platformHighlights = [
-  {
-    icon: BookOpenCheck,
-    title: 'Rúbricas académicas',
-    description: 'Criterios claros para evaluar trabajo en equipo.',
-  },
-  {
-    icon: UsersRound,
-    title: 'Docentes y estudiantes',
-    description: 'Experiencia separada por rol desde el ingreso.',
-  },
-  {
-    icon: BarChart3,
-    title: 'Resultados accionables',
-    description: 'Seguimiento y reportes para procesos formativos.',
-  },
+const performanceSegments = [
+  { label: 'Participación', value: '42%', color: 'bg-cyan-300' },
+  { label: 'Avance académico', value: '31%', color: 'bg-blue-300' },
+  { label: 'Retroalimentación', value: '27%', color: 'bg-emerald-300' },
 ]
 
 export function LoginPage() {
@@ -95,32 +80,45 @@ export function LoginPage() {
                 Evaluación colaborativa
               </p>
               <h1 className="text-4xl font-bold leading-[1.05] tracking-tight text-white xl:text-5xl">
-                Seguimiento serio del desempeño en equipos universitarios
+                Seguimiento del Desempeño de los estudiantes.
               </h1>
               <p className="mt-5 max-w-lg text-base leading-7 text-slate-200">
-                Centraliza rúbricas, procesos y resultados para que docentes y estudiantes
-                trabajen con criterios claros, trazabilidad y retroalimentación útil.
+                Visualiza avances, participación y resultados para acompañar mejor cada proceso
+                formativo.
               </p>
             </div>
 
-            <div className="mt-10 grid gap-3">
-              {platformHighlights.map((item) => {
-                const Icon = item.icon
-                return (
-                  <div
-                    key={item.title}
-                    className="group flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.07] p-4 shadow-lg shadow-slate-950/10 backdrop-blur transition-colors hover:bg-white/[0.1]"
-                  >
-                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-300/15 text-cyan-100 ring-1 ring-cyan-100/20">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h2 className="text-sm font-semibold text-white">{item.title}</h2>
-                      <p className="mt-1 text-sm leading-6 text-slate-300">{item.description}</p>
-                    </div>
+            <div className="mt-10 rounded-[1.75rem] border border-white/12 bg-white/[0.08] p-6 shadow-2xl shadow-slate-950/20 backdrop-blur">
+              <div className="flex items-center justify-between gap-6">
+                <div className="relative flex h-44 w-44 shrink-0 items-center justify-center rounded-full bg-[conic-gradient(from_160deg,#67e8f9_0_42%,#93c5fd_42%_73%,#6ee7b7_73%_100%)] shadow-2xl shadow-cyan-950/30">
+                  <div className="absolute inset-4 rounded-full border border-white/20 bg-slate-950/88 shadow-inner shadow-slate-950" />
+                  <div className="relative text-center">
+                    <p className="text-3xl font-bold text-white">92%</p>
+                    <p className="mt-1 text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                      Activo
+                    </p>
                   </div>
-                )
-              })}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-100">
+                    Vista de desempeño
+                  </p>
+                  <div className="mt-5 space-y-3">
+                    {performanceSegments.map((item) => (
+                      <div key={item.label} className="flex items-center justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className={`h-3 w-3 shrink-0 rounded-full ${item.color}`} />
+                          <span className="truncate text-sm font-medium text-slate-100">
+                            {item.label}
+                          </span>
+                        </div>
+                        <span className="text-sm font-bold text-white">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
