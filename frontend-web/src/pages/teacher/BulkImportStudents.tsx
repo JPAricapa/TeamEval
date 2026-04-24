@@ -170,7 +170,7 @@ export function BulkImportStudents({
               Importar estudiantes
             </CardTitle>
             <p className="mt-1 text-xs text-gray-500">
-              Sube un CSV con las columnas: firstName, lastName, email, nationalId. La contraseña temporal se generará automáticamente.
+              Sube un CSV con las columnas: firstName, lastName, email, nationalId. La cédula será la contraseña inicial.
             </p>
           </div>
           <Button variant="outline" size="sm" className="gap-2" onClick={downloadTemplate}>
@@ -259,13 +259,13 @@ export function BulkImportStudents({
             </p>
             {result.details.created.length > 0 && (
               <div className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-emerald-900">
-                <p className="font-medium">Contraseñas temporales generadas:</p>
+                <p className="font-medium">Contraseñas iniciales:</p>
                 <div className="mt-2 overflow-x-auto">
                   <table className="w-full min-w-[420px]">
                     <thead className="text-left text-emerald-700">
                       <tr>
                         <th className="py-1 pr-3 font-medium">Correo</th>
-                        <th className="py-1 font-medium">Contraseña temporal</th>
+                        <th className="py-1 font-medium">Contraseña inicial</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -279,7 +279,7 @@ export function BulkImportStudents({
                   </table>
                 </div>
                 <p className="mt-2 text-emerald-700">
-                  Guarda estas claves ahora; no se podrán consultar después.
+                  Estas claves corresponden a la cédula cargada para cada estudiante.
                 </p>
               </div>
             )}

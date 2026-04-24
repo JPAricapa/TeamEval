@@ -1,5 +1,4 @@
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { UserRole } from '../constants/enums';
@@ -13,10 +12,6 @@ function normalizeEmail(email: string) {
 
 function normalizeGroupName(name: string) {
   return name.trim().replace(/\s+/g, ' ');
-}
-
-function generateTemporaryPassword() {
-  return crypto.randomBytes(12).toString('base64url');
 }
 
 class GroupService {
@@ -149,9 +144,8 @@ class GroupService {
       const byNationalId = await prisma.user.findUnique({ where: { nationalId } });
       if (byNationalId) throw new AppError('La cédula ya está registrada con otro correo', 409);
 
-      const temporaryPassword = generateTemporaryPassword();
-      initialPassword = temporaryPassword;
-      const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+      initialPassword = nationalId;
+      const passwordHash = await bcrypt.hash(nationalId, 12);
       user = await prisma.user.create({
         data: {
           email, firstName, lastName, nationalId, passwordHash,

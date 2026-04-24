@@ -233,4 +233,4 @@ Rutas base relevantes del backend:
 - Para otros entornos, compila primero con `npm run build` y arranca la API con `npm run start`.
 - Ejecuta el seed sólo en bases nuevas o en reinicializaciones controladas.
 - No dependas del seed para gestionar credenciales en ambientes ya operativos; los cambios de contraseña deben hacerse de forma explícita.
-- Las cuentas creadas desde la aplicación usan contraseñas temporales aleatorias. No uses identificadores personales como contraseña inicial.
+- Las cuentas de estudiantes creadas desde la aplicación usan la cédula como contraseña inicial.

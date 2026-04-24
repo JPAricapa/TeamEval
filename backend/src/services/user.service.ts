@@ -1,5 +1,4 @@
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
 import { UserRole } from '../constants/enums';
@@ -13,10 +12,6 @@ function normalizeEmail(email: string) {
 
 function normalizeGroupName(name: string) {
   return name.trim().replace(/\s+/g, ' ');
-}
-
-function generateTemporaryPassword() {
-  return crypto.randomBytes(12).toString('base64url');
 }
 
 const WITH_MEMBERSHIPS = {
@@ -150,14 +145,13 @@ class UserService {
     const existingNationalId = await prisma.user.findUnique({ where: { nationalId: data.nationalId } });
     if (existingNationalId) throw new AppError('La cédula ya está registrada', 409);
 
-    const temporaryPassword = generateTemporaryPassword();
-    const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+    const passwordHash = await bcrypt.hash(data.nationalId, 12);
     const created = await prisma.user.create({
       data: { ...data, email, passwordHash, institutionId: requester.institutionId, isActive: true },
       select: { id: true, email: true, firstName: true, lastName: true, role: true, isActive: true, createdAt: true, institutionId: true }
     });
     audit({ userId: requester.id, action: 'USER_CREATED', entity: 'User', entityId: created.id, details: { email, role: data.role } });
-    return { ...created, initialPassword: temporaryPassword };
+    return { ...created, initialPassword: data.nationalId };
   }
 
   async updateUser(id: string, requester: AuthUser, data: { firstName?: string; lastName?: string; email?: string; nationalId?: string; isActive?: boolean }) {
@@ -268,8 +262,7 @@ class UserService {
             errors.push({ row: i + 1, email, reason: 'La cédula ya está registrada a otro correo' });
             continue;
           }
-          const temporaryPassword = generateTemporaryPassword();
-          const passwordHash = await bcrypt.hash(temporaryPassword, 12);
+          const passwordHash = await bcrypt.hash(s.nationalId, 12);
           user = await prisma.user.create({
             data: {
               email, nationalId: s.nationalId, passwordHash,
@@ -277,7 +270,7 @@ class UserService {
               role: UserRole.STUDENT, institutionId: course.institutionId, isActive: true
             }
           });
-          created.push({ email, initialPassword: temporaryPassword });
+          created.push({ email, initialPassword: s.nationalId });
         } else {
           if (user.role !== UserRole.STUDENT) {
             errors.push({ row: i + 1, email, reason: 'El correo ya pertenece a un usuario que no es estudiante' });
