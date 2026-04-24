@@ -48,22 +48,26 @@ export function StudentDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       {/* Welcome */}
-      <div className="bg-gradient-to-r from-blue-600 to-primary rounded-2xl p-6 text-white">
-        <p className="text-blue-200 text-sm">{greeting()},</p>
-        <h1 className="text-2xl font-bold mt-1">{user?.firstName} {user?.lastName}</h1>
-        <p className="text-blue-200 mt-1 text-sm">
-          {pending.length > 0
-            ? `Tienes ${pending.length} evaluación${pending.length > 1 ? 'es' : ''} pendiente${pending.length > 1 ? 's' : ''}${pendingSummary ? `: ${pendingSummary}` : ''}`
-            : '¡Estás al día! No tienes evaluaciones pendientes.'}
-        </p>
-        {pending.length > 0 && (
-          <Button size="sm" variant="secondary" className="mt-4 text-gray-800 gap-1.5"
-            onClick={() => navigate('/student/evaluations')}>
-            <ClipboardList className="w-3.5 h-3.5" /> Ir a mis evaluaciones
-          </Button>
-        )}
+      <div className="rounded-lg border border-primary/15 bg-primary p-5 text-white shadow-sm shadow-primary/20 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-sky-100">{greeting()},</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">{user?.firstName} {user?.lastName}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-sky-100">
+              {pending.length > 0
+                ? `Tienes ${pending.length} evaluación${pending.length > 1 ? 'es' : ''} pendiente${pending.length > 1 ? 's' : ''}${pendingSummary ? `: ${pendingSummary}` : ''}`
+                : 'Estás al día. No tienes evaluaciones pendientes.'}
+            </p>
+          </div>
+          {pending.length > 0 && (
+            <Button size="sm" variant="secondary" className="gap-1.5 text-gray-900"
+              onClick={() => navigate('/student/evaluations')}>
+              <ClipboardList className="w-3.5 h-3.5" /> Ir a mis evaluaciones
+            </Button>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -105,7 +109,7 @@ export function StudentDashboard() {
               const evaluateeName = evaluated ? `${fn} ${ln}` : undefined
               return (
                 <div key={ev.id}
-                  className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 hover:border-primary/30 hover:bg-blue-50/30 cursor-pointer transition-all"
+                  className="flex cursor-pointer flex-col gap-3 rounded-lg border border-gray-100 p-3.5 transition-all hover:border-primary/30 hover:bg-sky-50/60 sm:flex-row sm:items-center sm:justify-between"
                   onClick={() => navigate(`/student/evaluations/${ev.id}`, { state: { evaluateeName } })}>
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">

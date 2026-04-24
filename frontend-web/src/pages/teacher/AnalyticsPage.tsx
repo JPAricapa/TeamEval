@@ -149,20 +149,20 @@ export function AnalyticsPage() {
   const radarData = criteriaStats.map(c => ({ subject: c.criteriaName.split(' ')[0], value: c.mean, fullMark: 5 }))
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <Button variant="ghost" size="icon" onClick={() => navigate(`/teacher/evaluations/${processId}`)}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">Analítica del Proceso</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="page-title">Analítica del Proceso</h1>
+          <p className="page-subtitle">
             {analytics.studentCount} estudiantes
             {analytics.teamCount > 0 ? ` · ${analytics.teamCount} equipos` : ''}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:flex">
           <Button variant="outline" size="sm" className="gap-1.5"
             onClick={() => handleExport('excel')}
             disabled={downloading !== null}>
@@ -205,10 +205,10 @@ export function AnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+      <div className="flex w-full gap-1 rounded-lg bg-gray-100 p-1 sm:w-fit">
         {TABS.map((t, i) => (
           <button key={t} onClick={() => setTab(i)}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab === i ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+            className={`flex-1 rounded-md px-5 py-2 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-none ${tab === i ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
             {t}
           </button>
         ))}
@@ -225,11 +225,11 @@ export function AnalyticsPage() {
             <CardContent>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={histogram}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="range" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="count" name="Estudiantes" fill="#1565C0" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" name="Estudiantes" fill="#0b65b9" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
               {histogram.length === 0 && (
@@ -256,7 +256,7 @@ export function AnalyticsPage() {
                   { label: 'Percentil 90', value: stats.p90.toFixed(2) },
                   { label: 'N',            value: stats.count },
                 ].map(item => (
-                  <div key={item.label} className="bg-gray-50 rounded-xl p-3">
+                  <div key={item.label} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
                     <p className="text-xs text-gray-400">{item.label}</p>
                     <p className="text-lg font-bold text-gray-900 mt-0.5">{item.value}</p>
                   </div>
@@ -273,7 +273,7 @@ export function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Radar por Criterio</CardTitle>
-              <CardDescription>Puntaje promedio (escala 1–5)</CardDescription>
+              <CardDescription>Puntaje promedio (escala 1-5)</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
@@ -281,7 +281,7 @@ export function AnalyticsPage() {
                   <PolarGrid stroke="#e5e7eb" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
                   <PolarRadiusAxis domain={[0, 5]} tick={{ fontSize: 10 }} tickCount={6} />
-                  <Radar name="Promedio" dataKey="value" stroke="#1565C0" fill="#1565C0" fillOpacity={0.25} strokeWidth={2} />
+                  <Radar name="Promedio" dataKey="value" stroke="#0b65b9" fill="#0b65b9" fillOpacity={0.22} strokeWidth={2} />
                   <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12 }} formatter={(v: number) => [v.toFixed(2), 'Promedio']} />
                 </RadarChart>
               </ResponsiveContainer>

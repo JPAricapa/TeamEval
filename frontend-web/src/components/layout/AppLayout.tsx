@@ -63,27 +63,31 @@ export function AppLayout({ role }: AppLayoutProps) {
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={cn(
-      'flex flex-col h-full bg-white border-r border-gray-200',
+      'flex h-full flex-col border-r border-gray-200 bg-white/95 shadow-xl shadow-gray-950/5 backdrop-blur supports-[backdrop-filter]:bg-white/90 lg:shadow-none',
       mobile ? 'w-72' : 'w-64'
     )}>
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
-        <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+      <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-sm shadow-primary/20">
           <GraduationCap className="w-5 h-5 text-white" />
         </div>
         <div>
-          <p className="font-bold text-gray-900 text-sm leading-none">TeamEval</p>
-          <p className="text-xs text-gray-400 mt-0.5">Evaluación de Equipos</p>
+          <p className="text-sm font-bold leading-none tracking-tight text-gray-950">TeamEval</p>
+          <p className="mt-1 text-xs text-gray-500">Evaluación académica</p>
         </div>
         {mobile && (
-          <button onClick={() => setSidebarOpen(false)} className="ml-auto text-gray-400 hover:text-gray-600">
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="ml-auto rounded-md p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Cerrar navegación"
+          >
             <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Navegación principal">
         {items.map((item) => (
           <NavLink
             key={item.href}
@@ -91,17 +95,17 @@ export function AppLayout({ role }: AppLayoutProps) {
             end={item.href.split('/').length === 2}
             onClick={() => mobile && setSidebarOpen(false)}
             className={({ isActive }) => cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group',
+              'group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               isActive
-                ? 'bg-primary/10 text-primary'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                : 'text-gray-600 hover:bg-sky-50 hover:text-gray-950'
             )}
           >
             {({ isActive }) => (
               <>
-                <item.icon className={cn('w-4.5 h-4.5 flex-shrink-0', isActive ? 'text-primary' : 'text-gray-400 group-hover:text-gray-600')} />
+                <item.icon className={cn('h-4 w-4 flex-shrink-0', isActive ? 'text-white' : 'text-gray-400 group-hover:text-primary')} />
                 <span className="flex-1">{item.label}</span>
-                {isActive && <ChevronRight className="w-3.5 h-3.5 text-primary/60" />}
+                {isActive && <ChevronRight className="h-3.5 w-3.5 text-white/70" />}
               </>
             )}
           </NavLink>
@@ -109,9 +113,9 @@ export function AppLayout({ role }: AppLayoutProps) {
       </nav>
 
       {/* User footer */}
-      <div className="px-3 py-3 border-t border-gray-100">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 cursor-pointer">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+      <div className="border-t border-gray-100 px-3 py-3">
+        <div className="flex cursor-pointer items-center gap-3 rounded-md bg-gray-50 px-3 py-2.5 ring-1 ring-gray-100">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
             <span className="text-xs font-bold text-primary">
               {user?.firstName ? toTitleCase(user.firstName)[0] : ''}{user?.lastName ? toTitleCase(user.lastName)[0] : ''}
             </span>
@@ -127,7 +131,7 @@ export function AppLayout({ role }: AppLayoutProps) {
         </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 mt-1 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          className="mt-2 flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
         >
           <LogOut className="w-4 h-4" />
           Cerrar sesión
@@ -137,7 +141,7 @@ export function AppLayout({ role }: AppLayoutProps) {
   )
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(14,116,144,0.08),transparent_30%),linear-gradient(180deg,#f8fafc_0%,#eef3f8_100%)]">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex flex-shrink-0">
         <Sidebar />
@@ -146,7 +150,7 @@ export function AppLayout({ role }: AppLayoutProps) {
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
+          <div className="absolute inset-0 bg-gray-950/45 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0">
             <Sidebar mobile />
           </div>
@@ -156,19 +160,20 @@ export function AppLayout({ role }: AppLayoutProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 flex items-center gap-3 px-4 py-3 flex-shrink-0">
+        <header className="flex flex-shrink-0 items-center gap-3 border-b border-gray-200 bg-white/90 px-4 py-3 shadow-sm shadow-gray-950/[0.02] backdrop-blur supports-[backdrop-filter]:bg-white/75">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+            className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+            aria-label="Abrir navegación"
           >
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex-1" />
-          <button className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 relative">
+          <button className="relative rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Notificaciones">
             <Bell className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/10">
               <span className="text-xs font-bold text-primary">
                 {user?.firstName ? toTitleCase(user.firstName)[0] : ''}{user?.lastName ? toTitleCase(user.lastName)[0] : ''}
               </span>
@@ -184,7 +189,7 @@ export function AppLayout({ role }: AppLayoutProps) {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto p-6">
+          <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-6 lg:p-7">
             <Outlet />
           </div>
         </main>

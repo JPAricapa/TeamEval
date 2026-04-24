@@ -49,23 +49,27 @@ export function TeacherDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-shell">
       {/* Welcome */}
-      <div className="bg-gradient-to-r from-primary to-blue-700 rounded-2xl p-6 text-white">
-        <p className="text-blue-200 text-sm">{greeting()},</p>
-        <h1 className="text-2xl font-bold mt-1">{user?.firstName ? toTitleCase(user.firstName) : ''} {user?.lastName ? toTitleCase(user.lastName) : ''}</h1>
-        <p className="text-blue-200 mt-1 text-sm">
-          {active.length > 0
-            ? `Tienes ${active.length} proceso${active.length > 1 ? 's' : ''} de evaluación activo${active.length > 1 ? 's' : ''}`
-            : 'No hay procesos activos. Crea uno para comenzar.'}
-        </p>
-        <div className="flex gap-3 mt-4">
-          <Button size="sm" variant="secondary" onClick={() => navigate('/teacher/evaluations')} className="gap-1.5 text-gray-800">
-            <ClipboardList className="w-3.5 h-3.5" /> Ver evaluaciones
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => navigate('/teacher/rubrics')} className="gap-1.5 border-white/30 text-white hover:bg-white/10">
-            Ver rúbricas
-          </Button>
+      <div className="overflow-hidden rounded-lg border border-primary/15 bg-primary text-white shadow-sm shadow-primary/20">
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-6">
+          <div>
+            <p className="text-sm font-medium text-sky-100">{greeting()},</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight">{user?.firstName ? toTitleCase(user.firstName) : ''} {user?.lastName ? toTitleCase(user.lastName) : ''}</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-sky-100">
+              {active.length > 0
+                ? `Tienes ${active.length} proceso${active.length > 1 ? 's' : ''} de evaluación activo${active.length > 1 ? 's' : ''}`
+                : 'No hay procesos activos. Crea uno para comenzar.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => navigate('/teacher/evaluations')} className="gap-1.5 text-gray-900">
+              <ClipboardList className="w-3.5 h-3.5" /> Ver evaluaciones
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate('/teacher/rubrics')} className="gap-1.5 border-white/30 bg-white/5 text-white hover:bg-white/15 hover:text-white">
+              Ver rúbricas
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -98,13 +102,13 @@ export function TeacherDashboard() {
             {loading ? (
               <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
             ) : processes.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 text-sm">No hay procesos activos</div>
+              <div className="text-center py-8 text-gray-400 text-sm">No hay procesos registrados</div>
             ) : (
               processes.slice(0, 4).map(proc => {
                 const s = statusBadge[proc.status]
                 return (
                   <div key={proc.id}
-                    className="p-3.5 rounded-xl border border-gray-100 hover:border-primary/30 hover:bg-blue-50/30 cursor-pointer transition-all"
+                    className="cursor-pointer rounded-lg border border-gray-100 p-3.5 transition-all hover:border-primary/30 hover:bg-sky-50/60"
                     onClick={() => navigate(`/teacher/evaluations/${proc.id}`)}>
                     <div className="flex items-start justify-between gap-2 mb-2.5">
                       <p className="text-sm font-medium text-gray-900 leading-snug line-clamp-2">{proc.name}</p>

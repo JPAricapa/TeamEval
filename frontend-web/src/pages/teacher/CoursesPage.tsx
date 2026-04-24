@@ -102,15 +102,15 @@ export function CoursesPage() {
   if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="page-shell">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Mis Cursos</h1>
-          <p className="text-gray-500 mt-1 text-sm">
+          <h1 className="page-title">Mis Cursos</h1>
+          <p className="page-subtitle">
             {courses.length} cursos asignados · Programa fijo: Ingeniería Electrónica
           </p>
         </div>
-        <Button className="gap-2" onClick={openCreate}><Plus className="w-4 h-4" /> Nuevo Curso</Button>
+        <Button className="w-full gap-2 sm:w-auto" onClick={openCreate}><Plus className="w-4 h-4" /> Nuevo Curso</Button>
       </div>
 
       {error && (
@@ -119,17 +119,17 @@ export function CoursesPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {courses.map((course, i) => (
           <Card
             key={course.id}
-            className="overflow-hidden hover:shadow-md transition-shadow group"
+            className="group overflow-hidden transition-all hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md"
           >
             <div className={`h-2 bg-gradient-to-r ${colors[i % colors.length]}`} />
             <CardContent className="p-5">
               <div className="flex items-start justify-between mb-3">
-                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${colors[i % colors.length]} flex items-center justify-center bg-primary/10`}>
-                  <BookOpen className="w-5 h-5 text-primary" />
+                <div className={`flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br ${colors[i % colors.length]} shadow-sm`}>
+                  <BookOpen className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={course.isActive ? 'success' : 'secondary'}>
@@ -137,9 +137,10 @@ export function CoursesPage() {
                   </Badge>
                   <button
                     type="button"
-                    className="text-gray-300 hover:text-red-500 transition-colors"
+                    className="rounded-md p-1.5 text-gray-300 transition-colors hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
                     onClick={(e) => { e.stopPropagation(); setConfirmDelete(course) }}
                     title="Eliminar curso"
+                    aria-label={`Eliminar ${course.name}`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -172,7 +173,7 @@ export function CoursesPage() {
         <button
           type="button"
           onClick={openCreate}
-          className="border-2 border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-primary hover:text-primary transition-colors min-h-[180px]"
+          className="flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 bg-white/60 p-5 text-gray-400 transition-colors hover:border-primary hover:bg-sky-50/60 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Plus className="w-6 h-6" />
           <span className="text-sm font-medium">Agregar curso</span>
@@ -181,7 +182,7 @@ export function CoursesPage() {
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="modal-panel max-w-md p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -216,7 +217,7 @@ export function CoursesPage() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+          <div className="modal-panel max-w-lg p-6">
             <h2 className="mb-5 text-lg font-bold text-gray-900">Nuevo curso</h2>
             <div className="space-y-4">
               <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">

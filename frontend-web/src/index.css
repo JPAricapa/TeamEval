@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 29% 97%;
+    --foreground: 219 39% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 219 39% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 215 100% 40%;
+    --popover-foreground: 219 39% 11%;
+    --primary: 214 88% 36%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 27% 92%;
+    --secondary-foreground: 218 35% 17%;
+    --muted: 210 24% 94%;
+    --muted-foreground: 215 15% 42%;
+    --accent: 190 72% 42%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 215 100% 40%;
+    --border: 214 24% 86%;
+    --input: 214 22% 82%;
+    --ring: 190 72% 42%;
     --radius: 0.5rem;
   }
 
@@ -54,8 +54,66 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    min-width: 320px;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    @apply bg-primary/15 text-foreground;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply space-y-5 sm:space-y-6;
+  }
+
+  .page-header {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between;
+  }
+
+  .page-title {
+    @apply text-xl font-bold tracking-tight text-gray-950 sm:text-2xl;
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm leading-6 text-gray-500;
+  }
+
+  .data-table {
+    @apply w-full min-w-[760px] text-sm;
+  }
+
+  .data-table thead {
+    @apply border-y border-gray-200 bg-gray-50/80;
+  }
+
+  .data-table th {
+    @apply px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 align-middle;
+  }
+
+  .data-table tbody {
+    @apply divide-y divide-gray-100;
+  }
+
+  .data-table tbody tr {
+    @apply transition-colors hover:bg-sky-50/40;
+  }
+
+  .modal-panel {
+    @apply w-full rounded-lg border border-gray-200 bg-white shadow-2xl shadow-gray-950/20;
   }
 }
 

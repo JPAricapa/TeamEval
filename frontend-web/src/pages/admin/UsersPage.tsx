@@ -191,15 +191,15 @@ export function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="page-shell">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
-          <p className="text-gray-500 mt-1 text-sm">
+          <h1 className="page-title">Gestión de Usuarios</h1>
+          <p className="page-subtitle">
             Universidad del Quindío · {users.length} usuarios registrados
           </p>
         </div>
-        <Button onClick={() => { setCreatedUser(null); setFormError(''); setShowModal(true) }} className="gap-2">
+        <Button onClick={() => { setCreatedUser(null); setFormError(''); setShowModal(true) }} className="w-full gap-2 sm:w-auto">
           <Plus className="w-4 h-4" /> Añadir usuario
         </Button>
       </div>
@@ -215,7 +215,13 @@ export function UsersPage() {
               La contraseña inicial quedó asignada a la cédula{createdUser.initialPassword ? <>: <strong>{createdUser.initialPassword}</strong></> : ''}.
             </p>
           </div>
-          <button onClick={() => setCreatedUser(null)} className="ml-auto text-green-500 hover:text-green-700 text-lg leading-none">×</button>
+          <button
+            onClick={() => setCreatedUser(null)}
+            className="ml-auto rounded-md px-2 text-lg leading-none text-green-500 hover:bg-green-100 hover:text-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-300"
+            aria-label="Cerrar mensaje"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -227,7 +233,7 @@ export function UsersPage() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
@@ -237,12 +243,12 @@ export function UsersPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {['ALL', 'ADMIN', 'STUDENT'].map((role) => (
                 <button
                   key={role}
                   onClick={() => setFilterRole(role)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filterRole === role ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  className={`rounded-md px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${filterRole === role ? 'bg-primary text-white shadow-sm shadow-primary/15' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                 >
                   {role === 'ALL' ? 'Todos' : getRoleName(role)}
                 </button>
@@ -257,18 +263,18 @@ export function UsersPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-y border-gray-100">
+              <table className="data-table">
+                <thead>
                   <tr>
                     {['Usuario', 'Cédula', 'Correo electrónico', 'Rol', 'Estado', 'Curso / Grupo', 'Acciones'].map((h) => (
-                      <th key={h} className="text-left font-medium text-gray-500 px-6 py-3">{h}</th>
+                      <th key={h}>{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody>
                   {filtered.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4">
+                    <tr key={user.id}>
+                      <td>
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
                             {toTitleCase(user.firstName)[0]}{toTitleCase(user.lastName)[0]}
@@ -278,14 +284,14 @@ export function UsersPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-500 text-xs font-mono">{user.nationalId ?? '—'}</td>
-                      <td className="px-6 py-4 text-gray-500">{user.email}</td>
-                      <td className="px-6 py-4">
+                      <td className="text-xs font-mono text-gray-500">{user.nationalId ?? '—'}</td>
+                      <td className="text-gray-500">{user.email}</td>
+                      <td>
                         <span className={`inline-flex text-xs px-2.5 py-1 rounded-full font-medium ${getRoleColor(user.role)}`}>
                           {getRoleName(user.role)}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td>
                         <div className="relative flex items-center gap-2">
                           {user.isActive
                             ? <><UserCheck className="w-3.5 h-3.5 text-emerald-500" /><span className="text-emerald-600 text-xs font-medium">Activo</span></>
@@ -293,7 +299,7 @@ export function UsersPage() {
                           }
                           <button
                             type="button"
-                            className="rounded-lg border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                            className="rounded-md border border-gray-200 p-1.5 text-gray-500 hover:bg-gray-50 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             onClick={() => setOpenStatusMenuId((current) => current === user.id ? null : user.id)}
                             disabled={updatingUserId === user.id || user.role === 'ADMIN'}
                           >
@@ -320,7 +326,7 @@ export function UsersPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-gray-500 text-xs">
+                      <td className="text-xs text-gray-500">
                         {user.role === 'STUDENT' ? (
                           user.groupName ? (
                             <div className="space-y-0.5">
@@ -336,7 +342,7 @@ export function UsersPage() {
                           <span className="text-gray-400">No aplica</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td>
                         <div className="flex items-center gap-2">
                           <Button
                             type="button"
@@ -378,7 +384,7 @@ export function UsersPage() {
 
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="modal-panel max-w-md p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-1">Editar usuario</h2>
             <p className="text-sm text-gray-500 mb-5">{toTitleCase(editingUser.firstName)} {toTitleCase(editingUser.lastName)}</p>
             <div className="space-y-4">
@@ -423,7 +429,7 @@ export function UsersPage() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="modal-panel max-w-md p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-1">Añadir usuario</h2>
             <p className="text-sm text-gray-500 mb-5">
               Los usuarios creados desde aquí serán estudiantes y su contraseña inicial será la cédula.

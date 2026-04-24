@@ -265,13 +265,13 @@ export function EvaluationProcessesPage() {
     (!rubricAssignments.teacherRubric && rubricSelections.teacherRubricId)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="page-shell">
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Procesos de Evaluación</h1>
-          <p className="text-gray-500 mt-1 text-sm">{processes.length} procesos configurados</p>
+          <h1 className="page-title">Procesos de Evaluación</h1>
+          <p className="page-subtitle">{processes.length} procesos configurados</p>
         </div>
-        <Button onClick={() => setShowModal(true)} className="gap-2"><Plus className="w-4 h-4" /> Nuevo Proceso</Button>
+        <Button onClick={() => setShowModal(true)} className="w-full gap-2 sm:w-auto"><Plus className="w-4 h-4" /> Nuevo Proceso</Button>
       </div>
 
       {error && (
@@ -290,9 +290,9 @@ export function EvaluationProcessesPage() {
             const completed = proc.completedCount ?? 0
             const total = proc.totalCount ?? 0
             return (
-              <Card key={proc.id} className="hover:shadow-sm transition-shadow">
+              <Card key={proc.id} className="transition-all hover:border-primary/25 hover:shadow-md">
                 <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="font-semibold text-gray-900 text-sm">{proc.name}</h3>
@@ -314,21 +314,21 @@ export function EvaluationProcessesPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-400 mb-3">
                         <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Autoev: {Math.round(proc.selfWeight * 100)}%</span>
                         <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> Coev: {Math.round(proc.peerWeight * 100)}%</span>
                         <span>Docente: {Math.round(proc.teacherWeight * 100)}%</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                         <Progress value={pct} className="flex-1 h-1.5" />
-                        <span className="text-xs text-gray-400 flex-shrink-0">
+                        <span className="text-xs text-gray-400 sm:flex-shrink-0">
                           {completed}/{total} · {pct}% completado
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 flex-shrink-0">
+                    <div className="grid flex-shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:w-44 lg:grid-cols-1">
                       <Button size="sm" variant="outline" onClick={() => navigate(`/teacher/evaluations/${proc.id}`)}>
                         Ver detalle
                       </Button>
@@ -404,7 +404,7 @@ export function EvaluationProcessesPage() {
       {/* Modal de confirmación de eliminación */}
       {confirmDeleteProcess && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="modal-panel max-w-md p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
@@ -460,7 +460,7 @@ export function EvaluationProcessesPage() {
       {/* Modal de creación */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+          <div className="modal-panel max-h-[90vh] max-w-lg overflow-y-auto p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-5">Nuevo Proceso de Evaluación</h2>
             <div className="space-y-4">
               <div>
