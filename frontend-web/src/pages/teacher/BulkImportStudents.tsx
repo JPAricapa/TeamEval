@@ -257,6 +257,32 @@ export function BulkImportStudents({
             <p>
               {result.summary.created} creados · {result.summary.existing} ya existían · {result.summary.errors} con error
             </p>
+            {result.details.created.length > 0 && (
+              <div className="mt-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-emerald-900">
+                <p className="font-medium">Contraseñas temporales generadas:</p>
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full min-w-[420px]">
+                    <thead className="text-left text-emerald-700">
+                      <tr>
+                        <th className="py-1 pr-3 font-medium">Correo</th>
+                        <th className="py-1 font-medium">Contraseña temporal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.details.created.map((student) => (
+                        <tr key={student.email} className="border-t border-emerald-100">
+                          <td className="py-1 pr-3">{student.email}</td>
+                          <td className="py-1 font-mono">{student.initialPassword}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-2 text-emerald-700">
+                  Guarda estas claves ahora; no se podrán consultar después.
+                </p>
+              </div>
+            )}
             {result.details.errors.length > 0 && (
               <div className="mt-2 rounded-lg bg-white/60 px-3 py-2 text-xs text-amber-800">
                 <p className="font-medium">Errores:</p>
