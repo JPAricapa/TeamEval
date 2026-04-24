@@ -108,12 +108,13 @@ CORS_ORIGIN=http://localhost:5173
 FRONTEND_URL=http://localhost:5173
 ```
 
-Archivo de referencia: [backend/.env.example](/home/juan-pablo/teameval-platform/backend/.env.example:1)
+Archivo de referencia: `backend/.env.example`
 
 Notas:
 
 - Este proyecto usa PostgreSQL tanto en desarrollo como en producción.
 - Para Supabase, usa una cadena compatible con Prisma.
+- Para crear el primer administrador con el seed, configura `SEED_ADMIN_EMAIL`, `SEED_ADMIN_NATIONAL_ID` y `SEED_ADMIN_INITIAL_PASSWORD`. No uses cédulas, correos reales de terceros ni contraseñas reutilizadas en archivos versionados.
 - Si no configuras SMTP, los enlaces de recuperación se imprimen en consola.
 
 ### Frontend
@@ -122,7 +123,7 @@ Notas:
 VITE_API_URL=http://localhost:3000/api/v1
 ```
 
-Archivo de referencia: [frontend-web/.env.example](/home/juan-pablo/teameval-platform/frontend-web/.env.example:1)
+Archivo de referencia: `frontend-web/.env.example`
 
 
 Importante: el login es por `email + password`, no por cédula como usuario.
@@ -197,7 +198,12 @@ JWT_SECRET=<min 64 chars>
 JWT_REFRESH_SECRET=<min 64 chars>
 CORS_ORIGIN=https://tu-frontend.vercel.app
 FRONTEND_URL=https://tu-frontend.vercel.app
+SEED_ADMIN_EMAIL=<admin email>
+SEED_ADMIN_NATIONAL_ID=<admin identifier>
+SEED_ADMIN_INITIAL_PASSWORD=<strong one-time password>
 ```
+
+El seed no debe resetear contraseñas existentes. Si ya existe un administrador, solo sincroniza datos no sensibles.
 
 ## Estado actual de ramas de deploy
 
@@ -227,3 +233,4 @@ Rutas base relevantes del backend:
 - Para otros entornos, compila primero con `npm run build` y arranca la API con `npm run start`.
 - Ejecuta el seed sólo en bases nuevas o en reinicializaciones controladas.
 - No dependas del seed para gestionar credenciales en ambientes ya operativos; los cambios de contraseña deben hacerse de forma explícita.
+- Las cuentas creadas desde la aplicación usan contraseñas temporales aleatorias. No uses identificadores personales como contraseña inicial.

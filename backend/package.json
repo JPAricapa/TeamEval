@@ -13,8 +13,8 @@
     "prisma:seed": "ts-node prisma/seed.ts",
     "start:prod": "npm run prisma:generate && npm run prisma:migrate:deploy && npm run prisma:seed && node dist/index.js",
     "start:render": "npm run prisma:migrate:deploy && npm run prisma:seed && node dist/index.js",
-    "test": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test": "jest --config ../tests/backend/jest.config.js --coverage",
+    "test:watch": "jest --config ../tests/backend/jest.config.js --watch"
   },
   "dependencies": {
     "@prisma/client": "^5.7.0",

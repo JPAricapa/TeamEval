@@ -24,9 +24,52 @@ type ProcessRubrics = {
 };
 
 class EvaluationService {
-  async listProcesses(courseId?: string) {
+  private async ensureCanAccessCourse(courseId: string, user: AuthUser) {
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw new AppError('Curso no encontrado', 404);
+
+    if (user.role === UserRole.ADMIN) {
+      if (user.institutionId && course.institutionId !== user.institutionId) {
+        throw new AppError('Sin permisos para acceder a este curso', 403);
+      }
+      return course;
+    }
+
+    if (user.role === UserRole.TEACHER) {
+      if (course.teacherId !== user.id) throw new AppError('Sin permisos para acceder a este curso', 403);
+      return course;
+    }
+
+    const membership = await prisma.groupMember.findFirst({
+      where: { userId: user.id, isActive: true, group: { courseId, isActive: true } },
+      select: { id: true }
+    });
+    if (!membership) throw new AppError('Sin permisos para acceder a este curso', 403);
+    return course;
+  }
+
+  private async ensureCanAccessProcess(processId: string, user: AuthUser) {
+    const process = await prisma.evaluationProcess.findUnique({
+      where: { id: processId },
+      include: { course: true }
+    });
+    if (!process) throw new AppError('Proceso no encontrado', 404);
+    await this.ensureCanAccessCourse(process.courseId, user);
+    return process;
+  }
+
+  async listProcesses(user: AuthUser, courseId?: string) {
     const where: Record<string, unknown> = {};
-    if (courseId) where.courseId = courseId;
+    if (courseId) {
+      await this.ensureCanAccessCourse(courseId, user);
+      where.courseId = courseId;
+    } else if (user.role === UserRole.ADMIN && user.institutionId) {
+      where.course = { institutionId: user.institutionId };
+    } else if (user.role === UserRole.TEACHER) {
+      where.course = { teacherId: user.id };
+    } else {
+      where.evaluations = { some: { evaluatorId: user.id } };
+    }
 
     const processes = await prisma.evaluationProcess.findMany({
       where,
@@ -72,6 +115,7 @@ class EvaluationService {
   }
 
   async getProcessById(id: string, user: AuthUser) {
+    await this.ensureCanAccessProcess(id, user);
     const isStudent = user.role === UserRole.STUDENT;
 
     const evaluationsInclude = isStudent
@@ -118,13 +162,15 @@ class EvaluationService {
     selfWeight?: number; peerWeight?: number; teacherWeight?: number;
     includeSelf?: boolean; includePeer?: boolean; includeTeacher?: boolean;
     allowAnonymousPeer?: boolean;
-  }, actorId?: string) {
+  }, user: AuthUser) {
     const { courseId, selfWeight = 0.2, peerWeight = 0.5, teacherWeight = 0.3 } = data;
 
     const total = selfWeight + peerWeight + teacherWeight;
     if (Math.abs(total - 1) > 0.001) {
       throw new AppError(`Los pesos deben sumar 1.0 (actual: ${total.toFixed(2)})`, 400);
     }
+
+    await this.ensureCanAccessCourse(courseId, user);
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
@@ -148,11 +194,13 @@ class EvaluationService {
         teacherWeight
       }
     });
-    audit({ userId: actorId ?? null, action: 'PROCESS_CREATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: data.name, courseId } });
+    audit({ userId: user.id, action: 'PROCESS_CREATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: data.name, courseId } });
     return process;
   }
 
-  async activateProcess(id: string, actorId?: string) {
+  async activateProcess(id: string, user: AuthUser) {
+    await this.ensureCanAccessProcess(id, user);
+
     const process = await prisma.evaluationProcess.findUnique({
       where: { id },
       include: {
@@ -203,13 +251,14 @@ class EvaluationService {
       prisma.evaluationProcess.update({ where: { id: process.id }, data: { status: ProcessStatus.ACTIVE } })
     ]);
 
-    audit({ userId: actorId ?? null, action: 'PROCESS_ACTIVATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: process.name, evaluationsCreated: evaluationsToCreate.length } });
+    audit({ userId: user.id, action: 'PROCESS_ACTIVATED', entity: 'EvaluationProcess', entityId: process.id, details: { name: process.name, evaluationsCreated: evaluationsToCreate.length } });
     return { processId: process.id, evaluationsCreated: evaluationsToCreate.length };
   }
 
-  async closeProcess(id: string, actorId?: string) {
+  async closeProcess(id: string, user: AuthUser) {
+    await this.ensureCanAccessProcess(id, user);
     const process = await prisma.evaluationProcess.update({ where: { id }, data: { status: ProcessStatus.CLOSED } });
-    audit({ userId: actorId ?? null, action: 'PROCESS_CLOSED', entity: 'EvaluationProcess', entityId: id, details: { name: process.name } });
+    audit({ userId: user.id, action: 'PROCESS_CLOSED', entity: 'EvaluationProcess', entityId: id, details: { name: process.name } });
     return process;
   }
 
@@ -274,6 +323,7 @@ class EvaluationService {
         evaluated: { select: { firstName: true, lastName: true } },
         process: {
           include: {
+            course: true,
             selfRubric: { include: { criteria: { include: { performanceLevels: true } } } },
             peerRubric: { include: { criteria: { include: { performanceLevels: true } } } },
             teacherRubric: { include: { criteria: { include: { performanceLevels: true } } } }
@@ -286,6 +336,9 @@ class EvaluationService {
 
     if (evaluation.evaluatorId !== user.id && user.role !== UserRole.TEACHER && user.role !== UserRole.ADMIN) {
       throw new AppError('Sin permisos para ver esta evaluación', 403);
+    }
+    if (evaluation.evaluatorId !== user.id && (user.role === UserRole.TEACHER || user.role === UserRole.ADMIN)) {
+      await this.ensureCanAccessCourse(evaluation.process.courseId, user);
     }
 
     const rubric = this.resolveEvaluationRubric(evaluation.process, evaluation.type);

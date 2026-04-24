@@ -17,8 +17,36 @@ function getCurrentAcademicPeriod(date = new Date()) {
 }
 
 class CourseService {
+  private async ensureCanAccessCourse(courseId: string, user: AuthUser) {
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) throw new AppError('Curso no encontrado', 404);
+
+    if (user.role === UserRole.ADMIN) {
+      if (user.institutionId && course.institutionId !== user.institutionId) {
+        throw new AppError('Sin permisos para acceder a este curso', 403);
+      }
+      return course;
+    }
+
+    if (user.role === UserRole.TEACHER) {
+      if (course.teacherId !== user.id) throw new AppError('Sin permisos para acceder a este curso', 403);
+      return course;
+    }
+
+    const membership = await prisma.groupMember.findFirst({
+      where: { userId: user.id, isActive: true, group: { courseId, isActive: true } },
+      select: { id: true }
+    });
+    if (!membership) throw new AppError('Sin permisos para acceder a este curso', 403);
+    return course;
+  }
+
   async listCourses(user: AuthUser, periodId?: string) {
     const where: Record<string, unknown> = { isActive: true };
+
+    if (user.role === UserRole.ADMIN && user.institutionId) {
+      where.institutionId = user.institutionId;
+    }
 
     if (user.role === UserRole.TEACHER) {
       where.teacherId = user.id;
@@ -55,7 +83,9 @@ class CourseService {
     }));
   }
 
-  async getCourseById(id: string) {
+  async getCourseById(id: string, user: AuthUser) {
+    await this.ensureCanAccessCourse(id, user);
+
     const course = await prisma.course.findUnique({
       where: { id },
       include: {
@@ -127,7 +157,8 @@ class CourseService {
     return course;
   }
 
-  async updateCourse(id: string, data: Record<string, unknown>) {
+  async updateCourse(id: string, user: AuthUser, data: Record<string, unknown>) {
+    await this.ensureCanAccessCourse(id, user);
     return prisma.course.update({ where: { id }, data });
   }
 
@@ -163,7 +194,21 @@ class CourseService {
     audit({ userId: user.id, action: 'COURSE_DELETED', entity: 'Course', entityId: courseId, details: { name: course.name, code: course.code } });
   }
 
-  async assignRubric(courseId: string, rubricId: string, evaluationType?: EvaluationType) {
+  async assignRubric(courseId: string, user: AuthUser, rubricId: string, evaluationType?: EvaluationType) {
+    const course = await this.ensureCanAccessCourse(courseId, user);
+    const rubric = await prisma.rubric.findFirst({
+      where: {
+        id: rubricId,
+        isActive: true,
+        OR: [
+          { creatorId: user.id },
+          { isPublic: true },
+          ...(course.institutionId ? [{ institutionId: course.institutionId }] : [])
+        ]
+      }
+    });
+    if (!rubric) throw new AppError('Rúbrica no encontrada o no disponible para este curso', 404);
+
     return prisma.courseRubric.create({ data: { courseId, rubricId, evaluationType } });
   }
 }

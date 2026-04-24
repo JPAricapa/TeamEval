@@ -13,7 +13,7 @@ router.use(authenticate);
 router.get('/processes', allRoles,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const processes = await evaluationService.listProcesses(req.query.courseId as string | undefined);
+      const processes = await evaluationService.listProcesses(req.user!, req.query.courseId as string | undefined);
       sendSuccess(res, processes);
     } catch (error) { next(error); }
   }
@@ -46,7 +46,7 @@ router.post('/processes', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const process = await evaluationService.createProcess(req.body, req.user?.id);
+      const process = await evaluationService.createProcess(req.body, req.user!);
       sendCreated(res, process, 'Proceso de evaluación creado');
     } catch (error) { next(error); }
   }
@@ -56,7 +56,7 @@ router.post('/processes/:id/activate', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await evaluationService.activateProcess(req.params.id, req.user?.id);
+      const result = await evaluationService.activateProcess(req.params.id, req.user!);
       sendSuccess(res, result, `Proceso activado. ${result.evaluationsCreated} evaluaciones generadas.`);
     } catch (error) { next(error); }
   }
@@ -66,7 +66,7 @@ router.patch('/processes/:id/close', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const process = await evaluationService.closeProcess(req.params.id, req.user?.id);
+      const process = await evaluationService.closeProcess(req.params.id, req.user!);
       sendSuccess(res, process, 'Proceso cerrado');
     } catch (error) { next(error); }
   }

@@ -20,7 +20,7 @@ router.get('/', allRoles,
 router.get('/:id', [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const rubric = await rubricService.getRubricById(req.params.id);
+      const rubric = await rubricService.getRubricById(req.params.id, req.user!);
       sendSuccess(res, rubric);
     } catch (error) { next(error); }
   }
@@ -69,7 +69,7 @@ router.patch('/:id', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const rubric = await rubricService.patchRubric(req.params.id, req.body);
+      const rubric = await rubricService.patchRubric(req.params.id, req.user!, req.body);
       sendSuccess(res, rubric, 'Rúbrica actualizada');
     } catch (error) { next(error); }
   }
@@ -85,7 +85,7 @@ router.post('/:id/criteria', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const criteria = await rubricService.addCriteria(req.params.id, req.body);
+      const criteria = await rubricService.addCriteria(req.params.id, req.user!, req.body);
       sendCreated(res, criteria, 'Criterio agregado');
     } catch (error) { next(error); }
   }
@@ -101,7 +101,7 @@ router.post('/criteria/:criteriaId/levels', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const level = await rubricService.addPerformanceLevel(req.params.criteriaId, req.body);
+      const level = await rubricService.addPerformanceLevel(req.params.criteriaId, req.user!, req.body);
       sendCreated(res, level, 'Nivel de desempeño agregado');
     } catch (error) { next(error); }
   }
@@ -111,7 +111,7 @@ router.delete('/:id', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await rubricService.deleteRubric(req.params.id);
+      await rubricService.deleteRubric(req.params.id, req.user!);
       sendSuccess(res, null, 'Rúbrica desactivada');
     } catch (error) { next(error); }
   }

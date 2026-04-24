@@ -144,7 +144,7 @@ app.use(errorHandler);
 // INICIO DEL SERVIDOR
 // ============================================================
 
-async function bootstrap() {
+export async function bootstrap() {
   try {
     // Verificar conexión a base de datos
     await prisma.$connect();
@@ -175,6 +175,8 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-bootstrap();
+if (require.main === module) {
+  bootstrap();
+}
 
 export default app;

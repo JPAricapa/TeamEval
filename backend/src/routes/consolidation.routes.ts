@@ -9,6 +9,7 @@ import { validate } from '../middleware/validate.middleware';
 import { sendSuccess } from '../utils/response';
 import { consolidationService } from '../services/consolidation.service';
 import { prisma } from '../utils/prisma';
+import { assertProcessAccess, assertStudentBelongsToProcess } from '../utils/accessControl';
 
 const router = Router();
 router.use(authenticate);
@@ -18,6 +19,7 @@ router.post('/process/:processId', teacherOrAdmin,
   [param('processId').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
       const results = await consolidationService.consolidateProcess(req.params.processId);
       sendSuccess(res, results, `Consolidación completada: ${results.length} estudiantes`);
     } catch (error) { next(error); }
@@ -29,6 +31,8 @@ router.post('/process/:processId/student/:studentId', teacherOrAdmin,
   [param('processId').isUUID(), param('studentId').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
+      await assertStudentBelongsToProcess(req.params.studentId, req.params.processId);
       const result = await consolidationService.consolidateStudent(
         req.params.processId,
         req.params.studentId
@@ -44,6 +48,7 @@ router.get('/process/:processId/results', teacherOrAdmin,
   [param('processId').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
       const results = await consolidationService.getProcessResults(req.params.processId);
       sendSuccess(res, results, 'Resultados obtenidos');
     } catch (error) { next(error); }

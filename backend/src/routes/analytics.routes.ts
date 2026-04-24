@@ -9,6 +9,12 @@ import { authenticate, teacherOrAdmin } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { sendSuccess } from '../utils/response';
 import { analyticsService } from '../services/analytics.service';
+import {
+  assertInstitutionAccess,
+  assertProcessAccess,
+  assertStudentBelongsToProcess,
+  assertTeamBelongsToProcess
+} from '../utils/accessControl';
 
 const router = Router();
 router.use(authenticate);
@@ -21,6 +27,8 @@ router.get('/individual/:processId/:studentId', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
+      await assertStudentBelongsToProcess(req.params.studentId, req.params.processId);
       const analytics = await analyticsService.getIndividualAnalytics(
         req.params.processId,
         req.params.studentId
@@ -36,6 +44,8 @@ router.get('/team/:processId/:teamId', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
+      await assertTeamBelongsToProcess(req.params.teamId, req.params.processId);
       const analytics = await analyticsService.getTeamAnalytics(
         req.params.processId,
         req.params.teamId
@@ -51,6 +61,7 @@ router.get('/course/:processId', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
       const analytics = await analyticsService.getCourseAnalytics(req.params.processId);
       sendSuccess(res, analytics, 'Analítica del curso obtenida');
     } catch (error) { next(error); }
@@ -66,6 +77,7 @@ router.get('/institutional/:institutionId', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      assertInstitutionAccess(req.params.institutionId, req.user!);
       const analytics = await analyticsService.getInstitutionalAnalytics(
         req.params.institutionId,
         req.query.periodId as string | undefined

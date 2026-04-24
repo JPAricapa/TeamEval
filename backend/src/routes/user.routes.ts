@@ -20,6 +20,7 @@ router.get('/', teacherOrAdmin,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { users, total, page, limit, totalPages } = await userService.listUsers({
+        requester: req.user!,
         page: req.query.page as unknown as number,
         limit: req.query.limit as unknown as number,
         role: req.query.role as UserRole | undefined,
@@ -41,7 +42,7 @@ router.get('/:id', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const user = await userService.getUserById(req.params.id);
+      const user = await userService.getUserById(req.params.id, req.user!);
       sendSuccess(res, user);
     } catch (error) { next(error); }
   }

@@ -8,6 +8,7 @@ import { param } from 'express-validator';
 import { authenticate, teacherOrAdmin } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { exportService } from '../services/export.service';
+import { assertProcessAccess } from '../utils/accessControl';
 
 const router = Router();
 router.use(authenticate, teacherOrAdmin);
@@ -16,6 +17,7 @@ router.use(authenticate, teacherOrAdmin);
 router.get('/excel/:processId', [param('processId').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
       const buffer = await exportService.exportToExcel(req.params.processId);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', `attachment; filename="resultados_${req.params.processId}.xlsx"`);
@@ -28,6 +30,7 @@ router.get('/excel/:processId', [param('processId').isUUID()], validate,
 router.get('/csv/:processId', [param('processId').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
       const csv = await exportService.exportToCSV(req.params.processId);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="resultados_${req.params.processId}.csv"`);
@@ -40,6 +43,7 @@ router.get('/csv/:processId', [param('processId').isUUID()], validate,
 router.get('/pdf/:processId', [param('processId').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await assertProcessAccess(req.params.processId, req.user!);
       const pdf = await exportService.exportToPDF(req.params.processId);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="reporte_${req.params.processId}.pdf"`);

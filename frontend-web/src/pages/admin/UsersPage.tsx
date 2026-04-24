@@ -57,7 +57,7 @@ export function UsersPage() {
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState<CreateUserForm>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [createdUser, setCreatedUser] = useState<{ email: string; nationalId: string } | null>(null)
+  const [createdUser, setCreatedUser] = useState<{ email: string; initialPassword?: string } | null>(null)
   const [filterRole, setFilterRole] = useState<string>('ALL')
   const [error, setError] = useState('')
   const [formError, setFormError] = useState('')
@@ -106,7 +106,7 @@ export function UsersPage() {
         ...parsedName,
       })
       setUsers((prev) => [r.data.data, ...prev])
-      setCreatedUser({ email: form.email.trim(), nationalId: form.nationalId.trim() })
+      setCreatedUser({ email: form.email.trim(), initialPassword: r.data.data?.initialPassword })
       setShowModal(false)
       setForm(EMPTY_FORM)
     } catch (err: unknown) {
@@ -212,7 +212,7 @@ export function UsersPage() {
               Usuario creado: <span className="font-semibold">{createdUser.email}</span>
             </p>
             <p className="text-green-700 text-xs mt-0.5">
-              La contraseña inicial quedó asignada a la cédula <strong>{createdUser.nationalId}</strong>.
+              Se generó una contraseña temporal{createdUser.initialPassword ? <>: <strong>{createdUser.initialPassword}</strong></> : ''}. Compártela por un canal seguro y solicita cambiarla al primer ingreso.
             </p>
           </div>
           <button onClick={() => setCreatedUser(null)} className="ml-auto text-green-500 hover:text-green-700 text-lg leading-none">×</button>
@@ -426,7 +426,7 @@ export function UsersPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-1">Añadir usuario</h2>
             <p className="text-sm text-gray-500 mb-5">
-              Los usuarios creados desde aquí serán estudiantes y su contraseña inicial será la cédula.
+              Los usuarios creados desde aquí serán estudiantes y recibirán una contraseña temporal aleatoria.
             </p>
             <div className="space-y-4">
               <div>
@@ -461,7 +461,7 @@ export function UsersPage() {
               <div className="flex items-start gap-2.5 p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
                 <IdCard className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <span>
-                  La cédula se guardará y también será la contraseña inicial del usuario.
+                  La cédula se guarda como identificador. La contraseña inicial se genera aleatoriamente.
                 </span>
               </div>
               {formError && (

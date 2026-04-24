@@ -22,7 +22,7 @@ router.get('/', allRoles,
 router.get('/:id', [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const course = await courseService.getCourseById(req.params.id);
+      const course = await courseService.getCourseById(req.params.id, req.user!);
       sendSuccess(res, course);
     } catch (error) { next(error); }
   }
@@ -48,7 +48,7 @@ router.patch('/:id', teacherOrAdmin,
   [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const course = await courseService.updateCourse(req.params.id, req.body);
+      const course = await courseService.updateCourse(req.params.id, req.user!, req.body);
       sendSuccess(res, course, 'Curso actualizado');
     } catch (error) { next(error); }
   }
@@ -70,7 +70,7 @@ router.post('/:id/rubrics', teacherOrAdmin,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { rubricId, evaluationType } = req.body;
-      const courseRubric = await courseService.assignRubric(req.params.id, rubricId, evaluationType);
+      const courseRubric = await courseService.assignRubric(req.params.id, req.user!, rubricId, evaluationType);
       sendCreated(res, courseRubric, 'Rúbrica asociada al curso');
     } catch (error) { next(error); }
   }

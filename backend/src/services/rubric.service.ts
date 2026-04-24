@@ -1,7 +1,8 @@
 import { prisma } from '../utils/prisma';
 import { AppError } from '../middleware/errorHandler';
+import { UserRole } from '../constants/enums';
 
-type AuthUser = { id: string; institutionId?: string };
+type AuthUser = { id: string; role?: UserRole; institutionId?: string };
 
 type CriteriaInput = {
   name: string;
@@ -27,7 +28,7 @@ class RubricService {
     });
   }
 
-  async getRubricById(id: string) {
+  async getRubricById(id: string, user: AuthUser) {
     const rubric = await prisma.rubric.findUnique({
       where: { id },
       include: {
@@ -41,6 +42,11 @@ class RubricService {
       }
     });
     if (!rubric) throw new AppError('Rúbrica no encontrada', 404);
+    const canAccess =
+      rubric.creatorId === user.id ||
+      rubric.isPublic ||
+      Boolean(user.institutionId && rubric.institutionId === user.institutionId);
+    if (!canAccess) throw new AppError('Sin permisos para ver esta rúbrica', 403);
     return rubric;
   }
 
@@ -110,23 +116,38 @@ class RubricService {
     });
   }
 
-  async patchRubric(id: string, data: Record<string, unknown>) {
+  async patchRubric(id: string, user: AuthUser, data: Record<string, unknown>) {
+    const rubric = await prisma.rubric.findUnique({ where: { id } });
+    if (!rubric) throw new AppError('Rúbrica no encontrada', 404);
+    if (rubric.creatorId !== user.id) throw new AppError('Solo el creador puede modificar esta rúbrica', 403);
     return prisma.rubric.update({ where: { id }, data });
   }
 
-  async addCriteria(rubricId: string, data: { name: string; description?: string; weight: number; order?: number }) {
+  async addCriteria(rubricId: string, user: AuthUser, data: { name: string; description?: string; weight: number; order?: number }) {
+    const rubric = await prisma.rubric.findUnique({ where: { id: rubricId } });
+    if (!rubric) throw new AppError('Rúbrica no encontrada', 404);
+    if (rubric.creatorId !== user.id) throw new AppError('Solo el creador puede modificar esta rúbrica', 403);
     return prisma.rubricCriteria.create({
       data: { rubricId, name: data.name, description: data.description, weight: data.weight, order: data.order ?? 0 }
     });
   }
 
-  async addPerformanceLevel(criteriaId: string, data: { name: string; description?: string; score: number; order?: number }) {
+  async addPerformanceLevel(criteriaId: string, user: AuthUser, data: { name: string; description?: string; score: number; order?: number }) {
+    const criteria = await prisma.rubricCriteria.findUnique({
+      where: { id: criteriaId },
+      include: { rubric: true }
+    });
+    if (!criteria) throw new AppError('Criterio no encontrado', 404);
+    if (criteria.rubric.creatorId !== user.id) throw new AppError('Solo el creador puede modificar esta rúbrica', 403);
     return prisma.performanceLevel.create({
       data: { criteriaId, name: data.name, description: data.description, score: data.score, order: data.order ?? 0 }
     });
   }
 
-  async deleteRubric(id: string) {
+  async deleteRubric(id: string, user: AuthUser) {
+    const rubric = await prisma.rubric.findUnique({ where: { id } });
+    if (!rubric) throw new AppError('Rúbrica no encontrada', 404);
+    if (rubric.creatorId !== user.id) throw new AppError('Solo el creador puede eliminar esta rúbrica', 403);
     await prisma.rubric.update({ where: { id }, data: { isActive: false } });
   }
 }

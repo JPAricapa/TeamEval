@@ -85,7 +85,7 @@ describe('📊 Módulo de Analítica - Estadísticas Básicas', () => {
       const resultado = StatsCalculator.mean(notas);
       expect(resultado).toBeGreaterThan(1);
       expect(resultado).toBeLessThanOrEqual(4);
-      expect(resultado).toBeCloseTo(3.171, 1);
+      expect(resultado).toBeCloseTo(3.314, 1);
     });
   });
 

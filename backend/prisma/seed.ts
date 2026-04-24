@@ -185,12 +185,13 @@ async function main() {
   // ============================================================
   // USUARIO ADMIN (también docente)
   // ============================================================
-  const ADMIN_NATIONAL_ID = '1012345678';
-  const adminPassword = await bcrypt.hash(ADMIN_NATIONAL_ID, 12);
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminNationalId = process.env.SEED_ADMIN_NATIONAL_ID;
+  const adminInitialPassword = process.env.SEED_ADMIN_INITIAL_PASSWORD;
+
   const adminData = {
-    email: 'jaldana@uniquindio.edu.co',
-    nationalId: ADMIN_NATIONAL_ID,
-    passwordHash: adminPassword,
+    email: adminEmail,
+    nationalId: adminNationalId,
     firstName: 'Jorge Alejandro',
     lastName: 'Aldana Gutierrez',
     role: UserRole.ADMIN,
@@ -199,22 +200,30 @@ async function main() {
   };
 
   const existingAdmin = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { email: 'jaldana@uniquindio.edu.co' },
-        { email: 'admin@teameval.edu.co' },
-        { role: UserRole.ADMIN }
-      ]
-    }
+    where: { role: UserRole.ADMIN }
   });
+
+  if (!existingAdmin && (!adminEmail || !adminNationalId || !adminInitialPassword)) {
+    throw new Error('Configura SEED_ADMIN_EMAIL, SEED_ADMIN_NATIONAL_ID y SEED_ADMIN_INITIAL_PASSWORD antes de crear el primer administrador.');
+  }
 
   const admin = existingAdmin
     ? await prisma.user.update({
         where: { id: existingAdmin.id },
-        data: adminData
+        data: {
+          firstName: adminData.firstName,
+          lastName: adminData.lastName,
+          institutionId: institution.id,
+          isActive: true
+        }
       })
     : await prisma.user.create({
-        data: adminData
+        data: {
+          ...adminData,
+          email: adminEmail!,
+          nationalId: adminNationalId!,
+          passwordHash: await bcrypt.hash(adminInitialPassword!, 12)
+        }
       });
   console.log('✅ Usuario admin/docente:', admin.email);
 
@@ -403,7 +412,7 @@ async function main() {
 
   console.log('\n🎉 Seed completado.');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('Ingresa con el email del admin y su cédula como contraseña.');
+  console.log('Ingresa con las credenciales de administrador configuradas en variables de entorno.');
   console.log('Desde ahí puedes crear cursos, importar estudiantes por CSV');
   console.log('y lanzar procesos de evaluación.');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

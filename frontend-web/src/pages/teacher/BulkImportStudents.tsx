@@ -16,7 +16,7 @@ type ImportSummary = {
   summary: { total: number; created: number; existing: number; errors: number }
   group: { id: string; name: string }
   details: {
-    created: Array<{ email: string; nationalId: string }>
+    created: Array<{ email: string; initialPassword: string }>
     existing: Array<{ email: string }>
     errors: Array<{ row: number; email: string; reason: string }>
   }
@@ -170,7 +170,7 @@ export function BulkImportStudents({
               Importar estudiantes
             </CardTitle>
             <p className="mt-1 text-xs text-gray-500">
-              Sube un CSV con las columnas: firstName, lastName, email, nationalId. La cédula será la contraseña inicial.
+              Sube un CSV con las columnas: firstName, lastName, email, nationalId. La contraseña temporal se generará automáticamente.
             </p>
           </div>
           <Button variant="outline" size="sm" className="gap-2" onClick={downloadTemplate}>

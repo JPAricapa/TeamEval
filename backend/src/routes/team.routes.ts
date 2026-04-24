@@ -11,7 +11,7 @@ router.use(authenticate);
 router.get('/', allRoles,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const teams = await teamService.listTeams(req.query.groupId as string | undefined);
+      const teams = await teamService.listTeams(req.user!, req.query.groupId as string | undefined);
       sendSuccess(res, teams);
     } catch (error) { next(error); }
   }
@@ -20,7 +20,7 @@ router.get('/', allRoles,
 router.get('/:id', [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const team = await teamService.getTeamById(req.params.id);
+      const team = await teamService.getTeamById(req.params.id, req.user!);
       sendSuccess(res, team);
     } catch (error) { next(error); }
   }
@@ -35,7 +35,7 @@ router.post('/', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const team = await teamService.createTeam(req.body);
+      const team = await teamService.createTeam(req.user!, req.body);
       sendCreated(res, team, 'Equipo creado');
     } catch (error) { next(error); }
   }
@@ -46,7 +46,7 @@ router.post('/:id/members', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const member = await teamService.addMember(req.params.id, req.body.userId, req.body.role);
+      const member = await teamService.addMember(req.params.id, req.body.userId, req.user!, req.body.role);
       sendCreated(res, member, 'Miembro agregado al equipo');
     } catch (error) { next(error); }
   }
@@ -57,7 +57,7 @@ router.delete('/:id/members/:userId', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      await teamService.removeMember(req.params.id, req.params.userId);
+      await teamService.removeMember(req.params.id, req.params.userId, req.user!);
       sendSuccess(res, null, 'Miembro removido del equipo');
     } catch (error) { next(error); }
   }

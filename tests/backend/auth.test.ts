@@ -13,6 +13,7 @@ jest.mock('../../backend/src/utils/prisma', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn()
     },
@@ -115,7 +116,7 @@ describe('🔐 Autenticación - Registro y Login', () => {
     });
 
     it('retorna 401 si usuario no existe', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      prisma.user.findFirst.mockResolvedValue(null);
 
       const res = await request(app)
         .post('/api/v1/auth/login')

@@ -11,7 +11,7 @@ router.use(authenticate);
 router.get('/', allRoles,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const groups = await groupService.listGroups(req.query.courseId as string | undefined);
+      const groups = await groupService.listGroups(req.user!, req.query.courseId as string | undefined);
       sendSuccess(res, groups);
     } catch (error) { next(error); }
   }
@@ -20,7 +20,7 @@ router.get('/', allRoles,
 router.get('/:id', [param('id').isUUID()], validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const group = await groupService.getGroupById(req.params.id);
+      const group = await groupService.getGroupById(req.params.id, req.user!);
       sendSuccess(res, group);
     } catch (error) { next(error); }
   }
@@ -46,7 +46,7 @@ router.post('/:id/members', teacherOrAdmin,
   validate,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const member = await groupService.addMember(req.params.id, req.body.userId);
+      const member = await groupService.addMember(req.params.id, req.body.userId, req.user!);
       sendCreated(res, member, 'Estudiante agregado al grupo');
     } catch (error) { next(error); }
   }
