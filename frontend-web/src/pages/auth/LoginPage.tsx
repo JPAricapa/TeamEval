@@ -1,10 +1,38 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { GraduationCap, Eye, EyeOff, Loader2 } from 'lucide-react'
+import {
+  AlertCircle,
+  BarChart3,
+  BookOpenCheck,
+  Eye,
+  EyeOff,
+  GraduationCap,
+  Loader2,
+  ShieldCheck,
+  UsersRound,
+} from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/services/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+
+const platformHighlights = [
+  {
+    icon: BookOpenCheck,
+    title: 'Rúbricas académicas',
+    description: 'Criterios claros para evaluar trabajo en equipo.',
+  },
+  {
+    icon: UsersRound,
+    title: 'Docentes y estudiantes',
+    description: 'Experiencia separada por rol desde el ingreso.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Resultados accionables',
+    description: 'Seguimiento y reportes para procesos formativos.',
+  },
+]
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
@@ -35,123 +63,189 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left panel – branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary to-blue-800 flex-col justify-between p-12">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-white text-xl font-bold">TeamEval</span>
-        </div>
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.16),transparent_34%),linear-gradient(135deg,#f8fafc_0%,#eef6fb_48%,#f8fafc_100%)] text-gray-950">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:grid lg:grid-cols-[1.08fr_0.92fr] lg:px-8 lg:py-8">
+        {/* Left panel - academic context */}
+        <section className="relative hidden overflow-hidden rounded-[2rem] border border-white/25 bg-slate-950 shadow-2xl shadow-slate-900/20 lg:flex lg:flex-col lg:justify-between">
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(14,64,105,0.92)_50%,rgba(12,74,110,0.95))]" />
+          <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-cyan-400/18 blur-3xl" />
+          <div className="absolute bottom-[-6rem] left-[-4rem] h-80 w-80 rounded-full bg-blue-500/18 blur-3xl" />
+          <div className="absolute inset-x-12 top-24 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-        <div>
-          <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-            Plataforma de Evaluación<br />de Trabajo en Equipo
-          </h1>
-          <p className="text-blue-200 text-lg leading-relaxed">
-            Evalúa el desempeño de los equipos de trabajo universitario con rúbricas
-            de trabajo en equipo, analítica avanzada y reportes exportables.
-          </p>
-          <div className="mt-10 space-y-4">
+          <div className="relative z-10 flex items-center justify-between p-10">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20">
+                <GraduationCap className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <p className="text-xl font-bold tracking-tight text-white">TeamEval</p>
+                <p className="text-xs font-medium uppercase tracking-[0.22em] text-cyan-100/70">
+                  Plataforma académica
+                </p>
+              </div>
+            </div>
+            <div className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-cyan-50">
+              Acceso institucional
+            </div>
+          </div>
+
+          <div className="relative z-10 px-10 pb-8">
+            <div className="max-w-xl">
+              <p className="mb-4 inline-flex rounded-full border border-cyan-200/20 bg-cyan-100/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-100">
+                Evaluación colaborativa
+              </p>
+              <h1 className="text-4xl font-bold leading-[1.05] tracking-tight text-white xl:text-5xl">
+                Seguimiento serio del desempeño en equipos universitarios
+              </h1>
+              <p className="mt-5 max-w-lg text-base leading-7 text-slate-200">
+                Centraliza rúbricas, procesos y resultados para que docentes y estudiantes
+                trabajen con criterios claros, trazabilidad y retroalimentación útil.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-3">
+              {platformHighlights.map((item) => {
+                const Icon = item.icon
+                return (
+                  <div
+                    key={item.title}
+                    className="group flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.07] p-4 shadow-lg shadow-slate-950/10 backdrop-blur transition-colors hover:bg-white/[0.1]"
+                  >
+                    <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-300/15 text-cyan-100 ring-1 ring-cyan-100/20">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-white">{item.title}</h2>
+                      <p className="mt-1 text-sm leading-6 text-slate-300">{item.description}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="relative z-10 grid grid-cols-3 border-t border-white/10 bg-white/[0.04]">
             {[
-              { n: '2', label: 'Roles: Docente y Estudiante' },
-              { n: '6', label: 'Criterios de evaluación de trabajo en equipo' },
-              { n: '∞', label: 'Exportación Excel · CSV · PDF' },
+              { value: '2', label: 'roles principales' },
+              { value: '6', label: 'criterios base' },
+              { value: '3', label: 'formatos de reporte' },
             ].map((item) => (
-              <div key={item.n} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center text-white font-bold text-sm">
-                  {item.n}
-                </div>
-                <span className="text-blue-100 text-sm">{item.label}</span>
+              <div key={item.label} className="px-8 py-6">
+                <p className="text-2xl font-bold text-white">{item.value}</p>
+                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-slate-300">
+                  {item.label}
+                </p>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        <p className="text-blue-300 text-sm">Plataforma de Evaluación Colaborativa</p>
-      </div>
-
-      {/* Right panel – form */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 bg-gray-50">
-        {/* Mobile logo */}
-        <div className="flex lg:hidden items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <GraduationCap className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-gray-900 text-xl font-bold">TeamEval</span>
-        </div>
-
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Iniciar sesión</h2>
-            <p className="text-gray-500 mt-1 text-sm">Ingresa tus credenciales institucionales</p>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Correo electrónico
-                </label>
-                <Input
-                  type="email"
-                  placeholder="usuario@universidad.edu.co"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  disabled={loading}
-                />
+        {/* Right panel - form */}
+        <main className="flex flex-1 items-center justify-center py-8 lg:py-0 lg:pl-10">
+          <div className="w-full max-w-md">
+            {/* Mobile logo */}
+            <div className="mb-8 flex items-center gap-3 lg:hidden">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/20">
+                <GraduationCap className="h-6 w-6 text-white" />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Contraseña
-                </label>
-                <div className="relative">
+                <p className="text-xl font-bold tracking-tight text-gray-950">TeamEval</p>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
+                  Plataforma académica
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-7">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-sky-100 bg-white/80 px-3 py-1 text-xs font-semibold text-primary shadow-sm shadow-sky-950/5">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Ingreso seguro
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-4xl">
+                Iniciar sesión
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Ingresa con tus credenciales institucionales para continuar a tu panel.
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl shadow-slate-900/10 backdrop-blur sm:p-8">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-800">
+                    Correo electrónico
+                  </label>
                   <Input
-                    type={showPwd ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
+                    type="email"
+                    placeholder="usuario@universidad.edu.co"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                     disabled={loading}
-                    className="pr-10"
+                    className="h-12 rounded-xl border-gray-200 bg-gray-50/70 px-4 shadow-inner shadow-gray-950/[0.02] transition-all placeholder:text-gray-400 focus-visible:bg-white focus-visible:ring-cyan-500/30 disabled:bg-gray-100"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPwd(!showPwd)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
                 </div>
-                <div className="text-right mt-1.5">
-                  <Link
-                    to="/forgot-password"
-                    className="text-xs text-primary hover:underline font-medium"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </Link>
-                </div>
-              </div>
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-                  {error}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-4">
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Contraseña
+                    </label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-xs font-semibold text-primary transition-colors hover:text-cyan-700 hover:underline"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type={showPwd ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete="current-password"
+                      disabled={loading}
+                      className="h-12 rounded-xl border-gray-200 bg-gray-50/70 px-4 pr-12 shadow-inner shadow-gray-950/[0.02] transition-all placeholder:text-gray-400 focus-visible:bg-white focus-visible:ring-cyan-500/30 disabled:bg-gray-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(!showPwd)}
+                      className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40 disabled:pointer-events-none disabled:opacity-50"
+                      disabled={loading}
+                      aria-label={showPwd ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    >
+                      {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
-              )}
 
-              <Button type="submit" className="w-full h-11" disabled={loading}>
-                {loading ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verificando...</>
-                ) : (
-                  'Ingresar'
+                {error && (
+                  <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
                 )}
-              </Button>
-            </form>
+
+                <Button
+                  type="submit"
+                  className="h-12 w-full rounded-xl text-base shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 disabled:translate-y-0"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando...</>
+                  ) : (
+                    'Ingresar'
+                  )}
+                </Button>
+              </form>
+            </div>
+
+            <p className="mt-6 text-center text-xs leading-5 text-gray-500">
+              Plataforma de Evaluación Colaborativa para entornos académicos.
+            </p>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   )
