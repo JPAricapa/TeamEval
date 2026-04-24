@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 
@@ -5,32 +6,44 @@ import { useAuthStore } from '@/store/authStore'
 import { AppLayout } from '@/components/layout/AppLayout'
 
 // Auth
-import { LoginPage } from '@/pages/auth/LoginPage'
-import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
-import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
-import { AcceptInvitationPage } from '@/pages/auth/AcceptInvitationPage'
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
+const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
+const AcceptInvitationPage = lazy(() => import('@/pages/auth/AcceptInvitationPage').then((m) => ({ default: m.AcceptInvitationPage })))
 
 // Admin
-import { UsersPage } from '@/pages/admin/UsersPage'
-import { AuditPage } from '@/pages/admin/AuditPage'
+const UsersPage = lazy(() => import('@/pages/admin/UsersPage').then((m) => ({ default: m.UsersPage })))
+const AuditPage = lazy(() => import('@/pages/admin/AuditPage').then((m) => ({ default: m.AuditPage })))
 
 // Teacher
-import { TeacherDashboard } from '@/pages/teacher/TeacherDashboard'
-import { CoursesPage } from '@/pages/teacher/CoursesPage'
-import { CourseDetailPage } from '@/pages/teacher/CourseDetailPage'
-import { RubricsPage } from '@/pages/teacher/RubricsPage'
-import { EvaluationProcessesPage } from '@/pages/teacher/EvaluationProcessesPage'
-import { ProcessDetailPage } from '@/pages/teacher/ProcessDetailPage'
-import { AnalyticsPage } from '@/pages/teacher/AnalyticsPage'
-import { TeacherPendingPage } from '@/pages/teacher/TeacherPendingPage'
+const TeacherDashboard = lazy(() => import('@/pages/teacher/TeacherDashboard').then((m) => ({ default: m.TeacherDashboard })))
+const CoursesPage = lazy(() => import('@/pages/teacher/CoursesPage').then((m) => ({ default: m.CoursesPage })))
+const CourseDetailPage = lazy(() => import('@/pages/teacher/CourseDetailPage').then((m) => ({ default: m.CourseDetailPage })))
+const RubricsPage = lazy(() => import('@/pages/teacher/RubricsPage').then((m) => ({ default: m.RubricsPage })))
+const EvaluationProcessesPage = lazy(() => import('@/pages/teacher/EvaluationProcessesPage').then((m) => ({ default: m.EvaluationProcessesPage })))
+const ProcessDetailPage = lazy(() => import('@/pages/teacher/ProcessDetailPage').then((m) => ({ default: m.ProcessDetailPage })))
+const AnalyticsPage = lazy(() => import('@/pages/teacher/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })))
+const TeacherPendingPage = lazy(() => import('@/pages/teacher/TeacherPendingPage').then((m) => ({ default: m.TeacherPendingPage })))
 
 // Student
-import { StudentDashboard } from '@/pages/student/StudentDashboard'
-import { MyEvaluationsPage } from '@/pages/student/MyEvaluationsPage'
-import { EvaluationFormPage } from '@/pages/student/EvaluationFormPage'
-import { MyResultsPage } from '@/pages/student/MyResultsPage'
+const StudentDashboard = lazy(() => import('@/pages/student/StudentDashboard').then((m) => ({ default: m.StudentDashboard })))
+const MyEvaluationsPage = lazy(() => import('@/pages/student/MyEvaluationsPage').then((m) => ({ default: m.MyEvaluationsPage })))
+const EvaluationFormPage = lazy(() => import('@/pages/student/EvaluationFormPage').then((m) => ({ default: m.EvaluationFormPage })))
+const MyResultsPage = lazy(() => import('@/pages/student/MyResultsPage').then((m) => ({ default: m.MyResultsPage })))
 
-function RequireAuth({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
+function PageLoader() {
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center text-sm text-gray-500">
+      Cargando...
+    </div>
+  )
+}
+
+function withSuspense(children: ReactNode) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>
+}
+
+function RequireAuth({ children, roles }: { children: ReactNode; roles?: string[] }) {
   const { isAuthenticated, user } = useAuthStore()
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (roles && user && !roles.includes(user.role)) {
@@ -54,19 +67,19 @@ export const router = createBrowserRouter([
   },
   {
     path: '/login',
-    element: <LoginPage />,
+    element: withSuspense(<LoginPage />),
   },
   {
     path: '/accept-invitation',
-    element: <AcceptInvitationPage />,
+    element: withSuspense(<AcceptInvitationPage />),
   },
   {
     path: '/forgot-password',
-    element: <ForgotPasswordPage />,
+    element: withSuspense(<ForgotPasswordPage />),
   },
   {
     path: '/reset-password',
-    element: <ResetPasswordPage />,
+    element: withSuspense(<ResetPasswordPage />),
   },
   {
     path: '/unauthorized',
@@ -90,8 +103,8 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Navigate to="/admin/users" replace /> },
-      { path: 'users', element: <UsersPage /> },
-      { path: 'audit', element: <AuditPage /> },
+      { path: 'users', element: withSuspense(<UsersPage />) },
+      { path: 'audit', element: withSuspense(<AuditPage />) },
     ],
   },
 
@@ -104,15 +117,15 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <TeacherDashboard /> },
-      { path: 'courses', element: <CoursesPage /> },
-      { path: 'courses/:courseId', element: <CourseDetailPage /> },
-      { path: 'rubrics', element: <RubricsPage /> },
-      { path: 'evaluations', element: <EvaluationProcessesPage /> },
-      { path: 'evaluations/:processId', element: <ProcessDetailPage /> },
-      { path: 'pending', element: <TeacherPendingPage /> },
-      { path: 'evaluate/:evalId', element: <EvaluationFormPage /> },
-      { path: 'analytics/:processId', element: <AnalyticsPage /> },
+      { index: true, element: withSuspense(<TeacherDashboard />) },
+      { path: 'courses', element: withSuspense(<CoursesPage />) },
+      { path: 'courses/:courseId', element: withSuspense(<CourseDetailPage />) },
+      { path: 'rubrics', element: withSuspense(<RubricsPage />) },
+      { path: 'evaluations', element: withSuspense(<EvaluationProcessesPage />) },
+      { path: 'evaluations/:processId', element: withSuspense(<ProcessDetailPage />) },
+      { path: 'pending', element: withSuspense(<TeacherPendingPage />) },
+      { path: 'evaluate/:evalId', element: withSuspense(<EvaluationFormPage />) },
+      { path: 'analytics/:processId', element: withSuspense(<AnalyticsPage />) },
     ],
   },
 
@@ -125,10 +138,10 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <StudentDashboard /> },
-      { path: 'evaluations', element: <MyEvaluationsPage /> },
-      { path: 'evaluations/:evalId', element: <EvaluationFormPage /> },
-      { path: 'results', element: <MyResultsPage /> },
+      { index: true, element: withSuspense(<StudentDashboard />) },
+      { path: 'evaluations', element: withSuspense(<MyEvaluationsPage />) },
+      { path: 'evaluations/:evalId', element: withSuspense(<EvaluationFormPage />) },
+      { path: 'results', element: withSuspense(<MyResultsPage />) },
     ],
   },
 ])
