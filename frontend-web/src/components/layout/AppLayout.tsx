@@ -298,36 +298,44 @@ export function AppLayout({ role }: AppLayoutProps) {
             </button>
 
             {notificationsOpen && (
-              <div className="absolute right-0 top-11 z-40 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-950/15">
-                <div className="border-b border-gray-100 px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-950">Notificaciones</p>
-                  <p className="mt-0.5 text-xs text-gray-500">Actividad y tareas de tu rol</p>
+              <>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-40 cursor-default"
+                  aria-label="Cerrar notificaciones"
+                  onClick={() => setNotificationsOpen(false)}
+                />
+                <div className="fixed right-4 top-16 z-50 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-950/15 sm:right-6 lg:right-7">
+                  <div className="border-b border-gray-100 px-4 py-3">
+                    <p className="text-sm font-semibold text-gray-950">Notificaciones</p>
+                    <p className="mt-0.5 text-xs text-gray-500">Actividad y tareas de tu rol</p>
+                  </div>
+                  <div className="max-h-[min(22rem,calc(100vh-7rem))] overflow-y-auto p-2">
+                    {notificationItems.map((item) => (
+                      <button
+                        key={item.href}
+                        type="button"
+                        onClick={() => openNotification(item.href)}
+                        className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-gray-50"
+                      >
+                        <span className={cn(
+                          'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                          item.tone === 'green' && 'bg-emerald-50 text-emerald-700',
+                          item.tone === 'amber' && 'bg-amber-50 text-amber-700',
+                          item.tone === 'blue' && 'bg-sky-50 text-sky-700'
+                        )}>
+                          <item.icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold text-gray-900">{item.title}</span>
+                          <span className="mt-0.5 block text-xs leading-5 text-gray-500">{item.description}</span>
+                        </span>
+                        <ChevronRight className="mt-2 h-4 w-4 text-gray-300" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="max-h-80 overflow-y-auto p-2">
-                  {notificationItems.map((item) => (
-                    <button
-                      key={item.href}
-                      type="button"
-                      onClick={() => openNotification(item.href)}
-                      className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-gray-50"
-                    >
-                      <span className={cn(
-                        'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
-                        item.tone === 'green' && 'bg-emerald-50 text-emerald-700',
-                        item.tone === 'amber' && 'bg-amber-50 text-amber-700',
-                        item.tone === 'blue' && 'bg-sky-50 text-sky-700'
-                      )}>
-                        <item.icon className="h-4 w-4" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-semibold text-gray-900">{item.title}</span>
-                        <span className="mt-0.5 block text-xs leading-5 text-gray-500">{item.description}</span>
-                      </span>
-                      <ChevronRight className="mt-2 h-4 w-4 text-gray-300" />
-                    </button>
-                  ))}
-                </div>
-              </div>
+              </>
             )}
           </div>
           <div className="flex items-center gap-2.5">
