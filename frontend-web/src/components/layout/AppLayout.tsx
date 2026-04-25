@@ -55,7 +55,7 @@ function getNotificationItems(role: Role): NotificationItem[] {
     return [
       {
         title: 'Usuarios y accesos',
-        description: 'Revisa estados activos, roles y nuevos registros.',
+        description: 'Crea estudiantes y revisa estados activos.',
         href: '/admin/users',
         icon: Users,
         tone: notificationTone.ADMIN,
@@ -66,6 +66,20 @@ function getNotificationItems(role: Role): NotificationItem[] {
         href: '/admin/audit',
         icon: Shield,
         tone: 'green',
+      },
+      {
+        title: 'Procesos de evaluación',
+        description: 'Gestiona tus procesos como docente del curso.',
+        href: '/teacher/evaluations',
+        icon: ClipboardList,
+        tone: 'amber',
+      },
+      {
+        title: 'Evaluar estudiantes',
+        description: 'Completa evaluaciones docentes pendientes.',
+        href: '/teacher/pending',
+        icon: BarChart3,
+        tone: 'blue',
       },
     ]
   }

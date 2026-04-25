@@ -7,8 +7,6 @@ import { AppLayout } from '@/components/layout/AppLayout'
 
 // Auth
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
-const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
-const ResetPasswordPage = lazy(() => import('@/pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
 const AcceptInvitationPage = lazy(() => import('@/pages/auth/AcceptInvitationPage').then((m) => ({ default: m.AcceptInvitationPage })))
 
 // Admin
@@ -72,14 +70,6 @@ export const router = createBrowserRouter([
   {
     path: '/accept-invitation',
     element: withSuspense(<AcceptInvitationPage />),
-  },
-  {
-    path: '/forgot-password',
-    element: withSuspense(<ForgotPasswordPage />),
-  },
-  {
-    path: '/reset-password',
-    element: withSuspense(<ResetPasswordPage />),
   },
   {
     path: '/unauthorized',

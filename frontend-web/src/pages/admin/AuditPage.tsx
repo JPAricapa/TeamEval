@@ -20,7 +20,6 @@ const ACTION_LABELS: Record<string, { label: string; variant: 'info' | 'success'
   USER_CREATED:     { label: 'Usuario creado',      variant: 'success' },
   USER_UPDATED:     { label: 'Usuario editado',      variant: 'info' },
   USER_DELETED:     { label: 'Usuario eliminado',    variant: 'destructive' },
-  BULK_IMPORT:      { label: 'Importación masiva',   variant: 'info' },
   COURSE_CREATED:   { label: 'Curso creado',         variant: 'success' },
   COURSE_DELETED:   { label: 'Curso eliminado',      variant: 'destructive' },
   GROUP_CREATED:    { label: 'Grupo creado',         variant: 'success' },

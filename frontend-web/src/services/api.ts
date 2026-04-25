@@ -147,10 +147,6 @@ export const authApi = {
     api.post('/auth/logout', { refreshToken }),
   refresh: (refreshToken: string) =>
     api.post('/auth/refresh', { refreshToken }),
-  forgotPassword: (email: string) =>
-    api.post('/auth/forgot-password', { email }),
-  resetPassword: (token: string, newPassword: string) =>
-    api.post('/auth/reset-password', { token, newPassword }),
   acceptInvitation: (token: string, password: string) =>
     api.post('/auth/accept-invitation', { token, password }),
 }
@@ -164,11 +160,6 @@ export const usersApi = {
   create: (data: object) => api.post('/users', data),
   update: (id: string, data: object) => api.patch(`/users/${id}`, data),
   delete: (id: string) => api.delete(`/users/${id}`),
-  bulkImportStudents: (data: {
-    courseId: string
-    groupName: string
-    students: Array<{ firstName: string; lastName: string; email: string; nationalId: string }>
-  }) => api.post('/users/bulk-import-students', data),
 }
 
 // ── Institutions ──────────────────────────────────────────────────────────────
