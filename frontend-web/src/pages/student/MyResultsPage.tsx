@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, BookOpen, Info, Loader2, Users } from 'lucide-react'
+import { BarChart3, BookOpen, Info, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/loading-state'
+import { PageHeader } from '@/components/ui/page-header'
 import { consolidationApi } from '@/services/api'
 
 type ProcessInfo = {
@@ -33,6 +36,10 @@ function scoreColor(s: number | null) {
   return 'text-red-700 bg-red-50'
 }
 
+function scorePercent(s: number | null) {
+  if (s === null) return 0
+  return Math.min(100, Math.max(0, (s / 5) * 100))
+}
 
 export function MyResultsPage() {
   const [results, setResults] = useState<StudentResult[]>([])
@@ -45,13 +52,18 @@ export function MyResultsPage() {
       .catch(() => setError('No se pudieron cargar tus resultados.'))
       .finally(() => setLoading(false))
   }, [])
+  const averageScore = results.length > 0
+    ? results.reduce((sum, result) => sum + result.finalScore, 0) / results.length
+    : null
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mis Resultados</h1>
-        <p className="text-gray-500 mt-1 text-sm">Resultados consolidados de tus evaluaciones</p>
-      </div>
+    <div className="page-shell mx-auto max-w-4xl">
+      <PageHeader
+        title="Mis Resultados"
+        description={averageScore
+          ? `Promedio consolidado: ${averageScore.toFixed(2)} sobre 5.0 en ${results.length} proceso${results.length > 1 ? 's' : ''}.`
+          : 'Resultados consolidados de tus evaluaciones.'}
+      />
 
       <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 flex items-start gap-3">
         <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -68,26 +80,15 @@ export function MyResultsPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        </div>
+        <LoadingState label="Cargando resultados..." className="min-h-64" />
       ) : results.length === 0 ? (
-        <Card>
-          <CardContent className="p-10 text-center">
-            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <BarChart3 className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Aún no hay resultados disponibles
-            </h2>
-            <p className="text-sm text-gray-500 max-w-md mx-auto">
-              Cuando tu docente cierre el proceso de evaluación y consolide los resultados,
-              podrás ver aquí tu puntaje final y el análisis por criterio.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={BarChart3}
+          title="Aún no hay resultados disponibles"
+          description="Cuando tu docente cierre el proceso de evaluación y consolide los resultados, podrás ver aquí tu puntaje final y el análisis por criterio."
+        />
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-2">
           {results.map(result => (
             <Card key={result.id}>
               <CardHeader className="pb-3">
@@ -112,7 +113,6 @@ export function MyResultsPage() {
               </CardHeader>
 
               <CardContent className="pt-0 space-y-5">
-                {/* Puntaje final destacado */}
                 <div className="rounded-xl bg-primary/5 border border-primary/10 p-4 text-center">
                   <p className="text-xs text-gray-500 mb-1">Puntaje final</p>
                   <p className={`text-4xl font-bold ${scoreColor(result.finalScore).split(' ')[0]}`}>
@@ -121,7 +121,28 @@ export function MyResultsPage() {
                   <p className="text-xs text-gray-400 mt-1">sobre 5.0</p>
                 </div>
 
-
+                <div className="space-y-3">
+                  {[
+                    { label: 'Autoevaluación', value: result.selfScore },
+                    { label: 'Coevaluación', value: result.peerScore },
+                    { label: 'Docente', value: result.teacherScore },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <div className="mb-1 flex items-center justify-between text-xs">
+                        <span className="font-medium text-gray-600">{item.label}</span>
+                        <span className={item.value === null ? 'text-gray-400' : 'font-semibold text-gray-900'}>
+                          {item.value === null ? 'Sin registro' : item.value.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${scorePercent(item.value)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           ))}

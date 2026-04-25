@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Users, BookOpen, ClipboardList, Activity, Loader2, MoreHorizontal } from 'lucide-react'
+import { Users, BookOpen, ClipboardList, Activity, Loader2, MoreHorizontal, ShieldCheck, UserRoundX } from 'lucide-react'
 import { StatCard } from '@/components/ui/stat-card'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/loading-state'
+import { PageHeader } from '@/components/ui/page-header'
 import { usersApi, coursesApi } from '@/services/api'
 import type { User } from '@/types'
 import { getRoleColor, getRoleName } from '@/lib/utils'
@@ -36,6 +39,8 @@ export function AdminDashboard() {
     { name: 'Estudiantes', value: users.filter(u => u.role === 'STUDENT').length },
     { name: 'Docente', value: users.filter(u => u.role === 'ADMIN' || u.role === 'TEACHER').length },
   ]
+  const activeUsers = users.filter(u => u.isActive).length
+  const inactiveUsers = users.length - activeUsers
 
   const handleStatusChange = async (userId: string, isActive: boolean) => {
     setUpdatingUserId(userId)
@@ -55,14 +60,10 @@ export function AdminDashboard() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
+    return <LoadingState label="Cargando panel administrativo..." className="min-h-64" />
   }
 
-  if (error) {
+  if (error && users.length === 0) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
         {error}
@@ -71,26 +72,36 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
-        <p className="text-gray-500 mt-1 text-sm">Resumen general de la plataforma TeamEval</p>
-      </div>
+    <div className="page-shell">
+      <PageHeader
+        title="Panel de Administración"
+        description="Resumen operativo de usuarios, cursos y actividad institucional en TeamEval."
+        actions={
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+            <ShieldCheck className="h-4 w-4" />
+            {activeUsers} activos
+          </div>
+        }
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard title="Total Usuarios" value={users.length} icon={Users} color="blue"
-          subtitle={`${users.filter(u => u.isActive).length} activos`} />
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Total usuarios" value={users.length} icon={Users} color="blue"
+          subtitle={`${activeUsers} activos`} />
         <StatCard title="Cursos" value={courseCount} icon={BookOpen} color="green"
           subtitle="Registrados en la plataforma" />
         <StatCard title="Estudiantes" value={users.filter(u => u.role === 'STUDENT').length} icon={ClipboardList} color="amber"
           subtitle="Inscritos en todos los cursos" />
+        <StatCard title="Inactivos" value={inactiveUsers} icon={UserRoundX} color="red"
+          subtitle="Requieren revisión" />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 gap-6">
-        {/* Role distribution */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.8fr_1.2fr]">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -113,17 +124,22 @@ export function AdminDashboard() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Recent users */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Usuarios Recientes</CardTitle>
-          <CardDescription>Últimos usuarios registrados en la plataforma</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <Card>
+          <CardHeader>
+            <CardTitle>Usuarios recientes</CardTitle>
+            <CardDescription>Últimos usuarios registrados en la plataforma</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {users.length === 0 ? (
+              <EmptyState
+                icon={Users}
+                title="No hay usuarios"
+                description="Cuando se registren usuarios aparecerán en este resumen administrativo."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
                   <th className="text-left font-medium text-gray-500 pb-3">Usuario</th>
@@ -191,12 +207,14 @@ export function AdminDashboard() {
                       {user.teamName ?? user.groupName ?? (user.role === 'STUDENT' ? 'Sin grupo' : 'No aplica')}
                     </td>
                   </tr>
-                ))}
+                  ))}
               </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

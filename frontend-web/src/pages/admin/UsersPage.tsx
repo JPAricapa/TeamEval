@@ -3,6 +3,9 @@ import { Search, Plus, UserCheck, UserX, Loader2, BadgePlus, IdCard, MoreHorizon
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/loading-state'
+import { PageHeader } from '@/components/ui/page-header'
 import { usersApi } from '@/services/api'
 import type { Role, User } from '@/types'
 import { getRoleColor, getRoleName } from '@/lib/utils'
@@ -192,17 +195,15 @@ export function UsersPage() {
 
   return (
     <div className="page-shell">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Gestión de Usuarios</h1>
-          <p className="page-subtitle">
-            Universidad del Quindío · {users.length} usuarios registrados
-          </p>
-        </div>
-        <Button onClick={() => { setCreatedUser(null); setFormError(''); setShowModal(true) }} className="w-full gap-2 sm:w-auto">
-          <Plus className="w-4 h-4" /> Añadir usuario
-        </Button>
-      </div>
+      <PageHeader
+        title="Gestión de Usuarios"
+        description={`Universidad del Quindío · ${users.length} usuarios registrados`}
+        actions={
+          <Button onClick={() => { setCreatedUser(null); setFormError(''); setShowModal(true) }} className="w-full gap-2 sm:w-auto">
+            <Plus className="w-4 h-4" /> Añadir usuario
+          </Button>
+        }
+      />
 
       {createdUser && (
         <div className="flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800">
@@ -258,8 +259,14 @@ export function UsersPage() {
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <LoadingState label="Cargando usuarios..." className="min-h-48" />
+          ) : filtered.length === 0 ? (
+            <div className="p-5">
+              <EmptyState
+                icon={Search}
+                title="Sin resultados"
+                description="Ajusta la búsqueda o el filtro de rol para encontrar usuarios."
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">

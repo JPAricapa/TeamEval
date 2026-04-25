@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Play, Lock, BarChart3, Loader2, Clock, Users, Trash2, BookOpen, FolderKanban, AlertTriangle, Link2, Download } from 'lucide-react'
+import { Plus, Play, Lock, BarChart3, Loader2, Clock, Users, Trash2, BookOpen, FolderKanban, AlertTriangle, Link2, Download, ClipboardList } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/loading-state'
+import { PageHeader } from '@/components/ui/page-header'
 import { Progress } from '@/components/ui/progress'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { coursesApi, evaluationsApi, rubricsApi, exportApi } from '@/services/api'
 import type { Course, EvaluationProcess, Rubric } from '@/types'
 
@@ -266,13 +270,11 @@ export function EvaluationProcessesPage() {
 
   return (
     <div className="page-shell">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Procesos de Evaluación</h1>
-          <p className="page-subtitle">{processes.length} procesos configurados</p>
-        </div>
-        <Button onClick={() => setShowModal(true)} className="w-full gap-2 sm:w-auto"><Plus className="w-4 h-4" /> Nuevo Proceso</Button>
-      </div>
+      <PageHeader
+        title="Procesos de Evaluación"
+        description={`${processes.length} procesos configurados · ${processes.filter((item) => item.status === 'ACTIVE').length} activos`}
+        actions={<Button onClick={() => setShowModal(true)} className="w-full gap-2 sm:w-auto"><Plus className="w-4 h-4" /> Nuevo proceso</Button>}
+      />
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -281,11 +283,18 @@ export function EvaluationProcessesPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+        <LoadingState label="Cargando procesos..." className="min-h-64" />
       ) : (
         <div className="space-y-3">
+          {processes.length === 0 && (
+            <EmptyState
+              icon={ClipboardList}
+              title="No hay procesos configurados"
+              description="Crea un proceso para activar evaluaciones de estudiantes con rúbricas asociadas."
+              action={<Button onClick={() => setShowModal(true)} className="gap-2"><Plus className="h-4 w-4" /> Crear proceso</Button>}
+            />
+          )}
           {processes.map(proc => {
-            const s = STATUS[proc.status]
             const pct = computeProgress(proc)
             const completed = proc.completedCount ?? 0
             const total = proc.totalCount ?? 0
@@ -296,7 +305,7 @@ export function EvaluationProcessesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="font-semibold text-gray-900 text-sm">{proc.name}</h3>
-                        <Badge variant={s.variant}>{s.label}</Badge>
+                        <StatusBadge status={proc.status} />
                       </div>
                       {proc.description && <p className="text-xs text-gray-500 mb-2">{proc.description}</p>}
 

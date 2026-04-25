@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ClipboardList, CheckCircle2, Clock, ArrowRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/loading-state'
+import { PageHeader } from '@/components/ui/page-header'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { evaluationsApi } from '@/services/api'
 import { toTitleCase } from '@/lib/utils'
 import type { Evaluation } from '@/types'
@@ -73,19 +77,24 @@ export function MyEvaluationsPage() {
         </div>
         <div className="flex items-center gap-3">
           {isPending
-            ? <><Badge variant="warning">Pendiente</Badge><ArrowRight className="w-4 h-4 text-gray-300" /></>
-            : <Badge variant="success"><CheckCircle2 className="w-3 h-3 mr-1" />Completada</Badge>}
+            ? <><StatusBadge status="PENDING" type="evaluation" /><ArrowRight className="w-4 h-4 text-gray-300" /></>
+            : <StatusBadge status="COMPLETED" type="evaluation" />}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mis Evaluaciones</h1>
-        <p className="text-gray-500 mt-1 text-sm">{pending.length} pendiente{pending.length !== 1 ? 's' : ''} · {completed.length} completada{completed.length !== 1 ? 's' : ''}</p>
-      </div>
+    <div className="page-shell">
+      <PageHeader
+        title="Mis Evaluaciones"
+        description={`${pending.length} pendiente${pending.length !== 1 ? 's' : ''} · ${completed.length} completada${completed.length !== 1 ? 's' : ''}`}
+        actions={
+          <Button variant="outline" onClick={() => navigate('/student/results')} className="gap-2">
+            Ver resultados <ArrowRight className="h-4 w-4" />
+          </Button>
+        }
+      />
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -94,7 +103,7 @@ export function MyEvaluationsPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
+        <LoadingState label="Cargando tus evaluaciones..." className="min-h-64" />
       ) : (
         <div className="space-y-5">
           {/* Pending */}
@@ -129,10 +138,11 @@ export function MyEvaluationsPage() {
           )}
 
           {evals.length === 0 && (
-            <div className="text-center py-20">
-              <ClipboardList className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-400">No hay evaluaciones asignadas</p>
-            </div>
+            <EmptyState
+              icon={ClipboardList}
+              title="No hay evaluaciones asignadas"
+              description="Cuando tu docente active un proceso, tus evaluaciones aparecerán en esta pantalla."
+            />
           )}
         </div>
       )}

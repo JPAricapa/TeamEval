@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Plus, FileText, ChevronDown, ChevronUp, Loader2, Star, UserCheck, Users, GraduationCap } from 'lucide-react'
+import { Plus, FileText, ChevronDown, ChevronUp, Star, UserCheck, Users, GraduationCap } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { LoadingState } from '@/components/ui/loading-state'
+import { PageHeader } from '@/components/ui/page-header'
 import { rubricsApi } from '@/services/api'
 import type { Rubric } from '@/types'
 
@@ -165,17 +167,15 @@ export function RubricsPage() {
   const toggleRubric = (id: string) => setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
   const toggleCriteria = (id: string) => setExpandedCriteria(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
 
-  if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+  if (loading) return <LoadingState label="Cargando rúbricas..." className="min-h-64" />
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Rúbricas de Evaluación</h1>
-          <p className="text-gray-500 mt-1 text-sm">Instrumentos para evaluar el trabajo en equipo</p>
-        </div>
-        <Button className="gap-2"><Plus className="w-4 h-4" /> Nueva Rúbrica</Button>
-      </div>
+    <div className="page-shell">
+      <PageHeader
+        title="Rúbricas de Evaluación"
+        description={`${rubrics.length} instrumentos para evaluar el trabajo en equipo`}
+        actions={<Button className="gap-2"><Plus className="w-4 h-4" /> Nueva rúbrica</Button>}
+      />
 
       {/* Leyenda de tipos */}
       <div className="flex flex-wrap gap-3">

@@ -4,6 +4,7 @@ import { ArrowLeft, Send, Loader2, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { LoadingState } from '@/components/ui/loading-state'
 import { evaluationsApi } from '@/services/api'
 import { toTitleCase } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
@@ -139,6 +140,7 @@ export function EvaluationFormPage() {
   const total = rubric?.criteria?.length ?? 0
   const pct = total > 0 ? Math.round((answered / total) * 100) : 0
   const canSubmit = total > 0 && answered === total
+  const remaining = Math.max(total - answered, 0)
   const evaluationTitle =
     evalInfo?.type === 'SELF'
       ? 'Autoevaluación'
@@ -184,12 +186,7 @@ export function EvaluationFormPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] text-gray-500">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" />
-        Cargando evaluación...
-      </div>
-    )
+    return <LoadingState label="Cargando evaluación..." className="min-h-[60vh]" />
   }
 
   if (loadError || !rubric) {
@@ -221,12 +218,17 @@ export function EvaluationFormPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex justify-between text-sm mb-2">
-          <span className="text-gray-600 font-medium">Progreso</span>
-          <span className="text-gray-900 font-semibold">{answered}/{total} criterios</span>
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm shadow-gray-950/[0.03]">
+        <div className="mb-2 flex justify-between text-sm">
+          <span className="font-medium text-gray-600">Progreso</span>
+          <span className="font-semibold text-gray-900">{answered}/{total} criterios</span>
         </div>
         <Progress value={pct} className="h-2.5" />
+        <p className="mt-2 text-xs text-gray-500">
+          {remaining === 0
+            ? 'Ya puedes revisar y enviar tu evaluación.'
+            : `Falta${remaining > 1 ? 'n' : ''} ${remaining} criterio${remaining > 1 ? 's' : ''} por responder.`}
+        </p>
       </div>
 
       {/* Criteria */}
@@ -287,12 +289,16 @@ export function EvaluationFormPage() {
       })}
 
       {/* Submit */}
-      <div className="sticky bottom-4 space-y-2">
+      <div className="sticky bottom-4 space-y-2 rounded-2xl border border-gray-200 bg-white/95 p-3 shadow-2xl shadow-gray-950/10 backdrop-blur">
         {submitError && (
           <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {submitError}
           </div>
         )}
+        <div className="flex items-center justify-between px-1 text-xs text-gray-500">
+          <span>{answered} de {total} criterios respondidos</span>
+          <span>{pct}% completo</span>
+        </div>
         <Button
           className="w-full h-12 gap-2 shadow-lg text-base"
           disabled={!canSubmit || submitting}

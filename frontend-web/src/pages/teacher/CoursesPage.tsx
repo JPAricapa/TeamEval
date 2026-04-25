@@ -4,6 +4,9 @@ import { BookOpen, Users, Plus, Loader2, Trash2, AlertTriangle } from 'lucide-re
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/loading-state'
+import { PageHeader } from '@/components/ui/page-header'
 import { coursesApi } from '@/services/api'
 import { useAuthStore } from '@/store/authStore'
 import type { Course } from '@/types'
@@ -99,19 +102,15 @@ export function CoursesPage() {
     }
   }
 
-  if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+  if (loading) return <LoadingState label="Cargando cursos..." className="min-h-64" />
 
   return (
     <div className="page-shell">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Mis Cursos</h1>
-          <p className="page-subtitle">
-            {courses.length} cursos asignados · Programa fijo: Ingeniería Electrónica
-          </p>
-        </div>
-        <Button className="w-full gap-2 sm:w-auto" onClick={openCreate}><Plus className="w-4 h-4" /> Nuevo Curso</Button>
-      </div>
+      <PageHeader
+        title="Mis Cursos"
+        description={`${courses.length} cursos asignados · Programa fijo: Ingeniería Electrónica`}
+        actions={<Button className="w-full gap-2 sm:w-auto" onClick={openCreate}><Plus className="w-4 h-4" /> Nuevo curso</Button>}
+      />
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -119,6 +118,14 @@ export function CoursesPage() {
         </div>
       )}
 
+      {courses.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title="Aún no tienes cursos"
+          description="Crea un curso para registrar grupos, estudiantes y procesos de evaluación."
+          action={<Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> Crear curso</Button>}
+        />
+      ) : (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {courses.map((course, i) => (
           <Card
@@ -179,6 +186,7 @@ export function CoursesPage() {
           <span className="text-sm font-medium">Agregar curso</span>
         </button>
       </div>
+      )}
 
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -233,7 +241,7 @@ export function CoursesPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-gray-600">Codigo *</label>
+                  <label className="mb-1 block text-xs font-medium text-gray-600">Código *</label>
                   <input
                     className="h-10 w-full rounded-lg border border-input px-3 text-sm"
                     value={form.code}

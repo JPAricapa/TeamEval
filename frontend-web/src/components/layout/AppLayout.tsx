@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import {
   LayoutDashboard, Users, BookOpen, FileText,
@@ -44,6 +44,7 @@ export function AppLayout({ role }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
 
   // El admin también es docente: le mostramos ambos conjuntos de items
   // (gestión de usuarios/institución + cursos/rúbricas/evaluaciones).
@@ -51,6 +52,10 @@ export function AppLayout({ role }: AppLayoutProps) {
     user?.role === 'ADMIN'
       ? [...navItems.ADMIN, ...navItems.TEACHER]
       : navItems[role]
+  const currentItem =
+    items
+      .filter((item) => location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))
+      .sort((a, b) => b.href.length - a.href.length)[0] ?? items[0]
 
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem('refreshToken')
@@ -68,7 +73,7 @@ export function AppLayout({ role }: AppLayoutProps) {
     )}>
       {/* Logo */}
       <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary shadow-sm shadow-primary/20">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-sm shadow-primary/20">
           <GraduationCap className="w-5 h-5 text-white" />
         </div>
         <div>
@@ -88,6 +93,9 @@ export function AppLayout({ role }: AppLayoutProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Navegación principal">
+        <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+          {getRoleName(user?.role ?? role)}
+        </p>
         {items.map((item) => (
           <NavLink
             key={item.href}
@@ -95,7 +103,7 @@ export function AppLayout({ role }: AppLayoutProps) {
             end={item.href.split('/').length === 2}
             onClick={() => mobile && setSidebarOpen(false)}
             className={({ isActive }) => cn(
-              'group flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
               isActive
                 ? 'bg-primary text-white shadow-sm shadow-primary/20'
                 : 'text-gray-600 hover:bg-sky-50 hover:text-gray-950'
@@ -114,7 +122,7 @@ export function AppLayout({ role }: AppLayoutProps) {
 
       {/* User footer */}
       <div className="border-t border-gray-100 px-3 py-3">
-        <div className="flex cursor-pointer items-center gap-3 rounded-md bg-gray-50 px-3 py-2.5 ring-1 ring-gray-100">
+        <div className="flex cursor-pointer items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5 ring-1 ring-gray-100">
           <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
             <span className="text-xs font-bold text-primary">
               {user?.firstName ? toTitleCase(user.firstName)[0] : ''}{user?.lastName ? toTitleCase(user.lastName)[0] : ''}
@@ -131,7 +139,7 @@ export function AppLayout({ role }: AppLayoutProps) {
         </div>
         <button
           onClick={handleLogout}
-          className="mt-2 flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+          className="mt-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
         >
           <LogOut className="w-4 h-4" />
           Cerrar sesión
@@ -163,14 +171,20 @@ export function AppLayout({ role }: AppLayoutProps) {
         <header className="flex flex-shrink-0 items-center gap-3 border-b border-gray-200 bg-white/90 px-4 py-3 shadow-sm shadow-gray-950/[0.02] backdrop-blur supports-[backdrop-filter]:bg-white/75">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+            className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
             aria-label="Abrir navegación"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex-1" />
-          <button className="relative rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Notificaciones">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold leading-none text-gray-950">{currentItem?.label}</p>
+            <p className="mt-1 hidden text-xs text-gray-400 sm:block">
+              TeamEval / {getRoleName(user?.role ?? role)} / {currentItem?.label}
+            </p>
+          </div>
+          <button className="relative rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Notificaciones">
             <Bell className="w-5 h-5" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-white" />
           </button>
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/10">

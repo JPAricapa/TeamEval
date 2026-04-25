@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ClipboardList, BarChart3, CheckCircle2, Clock, ArrowRight, Loader2 } from 'lucide-react'
+import { ClipboardList, BarChart3, CheckCircle2, Clock, ArrowRight, UserRoundCheck } from 'lucide-react'
 import { StatCard } from '@/components/ui/stat-card'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/loading-state'
+import { PageHeader } from '@/components/ui/page-header'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { useAuthStore } from '@/store/authStore'
 import { evaluationsApi } from '@/services/api'
 import { toTitleCase } from '@/lib/utils'
@@ -49,26 +52,19 @@ export function StudentDashboard() {
 
   return (
     <div className="page-shell">
-      {/* Welcome */}
-      <div className="rounded-lg border border-primary/15 bg-primary p-5 text-white shadow-sm shadow-primary/20 sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-sky-100">{greeting()},</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight">{user?.firstName} {user?.lastName}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-sky-100">
-              {pending.length > 0
-                ? `Tienes ${pending.length} evaluación${pending.length > 1 ? 'es' : ''} pendiente${pending.length > 1 ? 's' : ''}${pendingSummary ? `: ${pendingSummary}` : ''}`
-                : 'Estás al día. No tienes evaluaciones pendientes.'}
-            </p>
-          </div>
-          {pending.length > 0 && (
-            <Button size="sm" variant="secondary" className="gap-1.5 text-gray-900"
-              onClick={() => navigate('/student/evaluations')}>
-              <ClipboardList className="w-3.5 h-3.5" /> Ir a mis evaluaciones
-            </Button>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={greeting()}
+        title={`${user?.firstName ? toTitleCase(user.firstName) : ''} ${user?.lastName ? toTitleCase(user.lastName) : ''}`}
+        description={pending.length > 0
+          ? `Tienes ${pending.length} evaluación${pending.length > 1 ? 'es' : ''} pendiente${pending.length > 1 ? 's' : ''}${pendingSummary ? `: ${pendingSummary}` : ''}.`
+          : 'Estás al día. Cuando tengas nuevas evaluaciones aparecerán aquí.'}
+        actions={
+          <Button className="gap-2" onClick={() => navigate(pending.length > 0 ? '/student/evaluations' : '/student/results')}>
+            {pending.length > 0 ? <ClipboardList className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
+            {pending.length > 0 ? 'Ir a evaluaciones' : 'Ver resultados'}
+          </Button>
+        }
+      />
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -76,29 +72,32 @@ export function StudentDashboard() {
         </div>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard title="Pendientes" value={pending.length} icon={Clock} color="amber" subtitle="Por completar" />
         <StatCard title="Autoevaluaciones" value={selfPending} icon={CheckCircle2} color="blue" subtitle="Pendientes" />
         <StatCard title="Evaluar compañeros" value={peerPending} icon={BarChart3} color="green" subtitle="Pendientes" />
       </div>
 
-      {/* Pending evaluations list */}
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-3">
-          <CardTitle className="text-base">Evaluaciones Pendientes</CardTitle>
+          <div>
+            <CardTitle className="text-base">Evaluaciones pendientes</CardTitle>
+            <CardDescription>Completa primero las asignaciones con estado pendiente</CardDescription>
+          </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/student/evaluations')} className="gap-1 text-primary text-xs">
             Ver todas <ArrowRight className="w-3.5 h-3.5" />
           </Button>
         </CardHeader>
         <CardContent className="space-y-2">
           {loading ? (
-            <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
+            <LoadingState label="Cargando evaluaciones..." className="min-h-32" />
           ) : pending.length === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">¡Todo completado!</p>
-            </div>
+            <EmptyState
+              icon={UserRoundCheck}
+              title="Todo completado"
+              description="No tienes evaluaciones pendientes en este momento."
+              className="border-emerald-100 bg-emerald-50/50"
+            />
           ) : (
             pending.slice(0, 6).map(ev => {
               const t = typeLabel[ev.type]
@@ -126,17 +125,13 @@ export function StudentDashboard() {
                       </span>
                     </div>
                   </div>
-                  <Badge variant="warning">Pendiente</Badge>
+                  <StatusBadge status="PENDING" type="evaluation" />
                 </div>
               )
             })
           )}
         </CardContent>
       </Card>
-
-      <Button className="w-full gap-2" onClick={() => navigate('/student/results')}>
-        <BarChart3 className="w-4 h-4" /> Ver mis resultados
-      </Button>
     </div>
   )
 }
