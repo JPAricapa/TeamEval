@@ -297,46 +297,6 @@ export function AppLayout({ role }: AppLayoutProps) {
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-white" />
             </button>
 
-            {notificationsOpen && (
-              <>
-                <button
-                  type="button"
-                  className="fixed inset-0 z-40 cursor-default"
-                  aria-label="Cerrar notificaciones"
-                  onClick={() => setNotificationsOpen(false)}
-                />
-                <div className="fixed right-4 top-16 z-50 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-950/15 sm:right-6 lg:right-7">
-                  <div className="border-b border-gray-100 px-4 py-3">
-                    <p className="text-sm font-semibold text-gray-950">Notificaciones</p>
-                    <p className="mt-0.5 text-xs text-gray-500">Actividad y tareas de tu rol</p>
-                  </div>
-                  <div className="max-h-[min(22rem,calc(100vh-7rem))] overflow-y-auto p-2">
-                    {notificationItems.map((item) => (
-                      <button
-                        key={item.href}
-                        type="button"
-                        onClick={() => openNotification(item.href)}
-                        className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-gray-50"
-                      >
-                        <span className={cn(
-                          'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
-                          item.tone === 'green' && 'bg-emerald-50 text-emerald-700',
-                          item.tone === 'amber' && 'bg-amber-50 text-amber-700',
-                          item.tone === 'blue' && 'bg-sky-50 text-sky-700'
-                        )}>
-                          <item.icon className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-semibold text-gray-900">{item.title}</span>
-                          <span className="mt-0.5 block text-xs leading-5 text-gray-500">{item.description}</span>
-                        </span>
-                        <ChevronRight className="mt-2 h-4 w-4 text-gray-300" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/10">
@@ -352,6 +312,57 @@ export function AppLayout({ role }: AppLayoutProps) {
             </div>
           </div>
         </header>
+
+        {notificationsOpen && (
+          <div className="fixed inset-0 z-[9999]">
+            <button
+              type="button"
+              className="absolute inset-0 cursor-default bg-gray-950/35 backdrop-blur-[1px]"
+              aria-label="Cerrar notificaciones"
+              onClick={() => setNotificationsOpen(false)}
+            />
+            <aside className="absolute bottom-0 right-0 top-0 flex w-full max-w-sm flex-col border-l border-gray-200 bg-white shadow-2xl shadow-gray-950/25 sm:max-w-md">
+              <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4">
+                <div>
+                  <p className="text-base font-semibold text-gray-950">Notificaciones</p>
+                  <p className="mt-0.5 text-xs text-gray-500">Actividad y tareas de tu rol</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotificationsOpen(false)}
+                  className="rounded-xl p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Cerrar notificaciones"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                {notificationItems.map((item) => (
+                  <button
+                    key={item.href}
+                    type="button"
+                    onClick={() => openNotification(item.href)}
+                    className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-gray-50"
+                  >
+                    <span className={cn(
+                      'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                      item.tone === 'green' && 'bg-emerald-50 text-emerald-700',
+                      item.tone === 'amber' && 'bg-amber-50 text-amber-700',
+                      item.tone === 'blue' && 'bg-sky-50 text-sky-700'
+                    )}>
+                      <item.icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-gray-900">{item.title}</span>
+                      <span className="mt-0.5 block text-xs leading-5 text-gray-500">{item.description}</span>
+                    </span>
+                    <ChevronRight className="mt-2 h-4 w-4 text-gray-300" />
+                  </button>
+                ))}
+              </div>
+            </aside>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
