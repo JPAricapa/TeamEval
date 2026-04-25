@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import {
   AlertCircle,
   CheckCircle2,
@@ -257,17 +257,9 @@ export function LoginPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-4">
-                    <label className="block text-sm font-semibold text-gray-800">
-                      Contraseña
-                    </label>
-                    <Link
-                      to="/forgot-password"
-                      className="text-xs font-semibold text-primary transition-colors hover:text-cyan-700 hover:underline"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </Link>
-                  </div>
+                  <label className="block text-sm font-semibold text-gray-800">
+                    Contraseña
+                  </label>
                   <div className="relative">
                     <Input
                       type={showPwd ? 'text' : 'password'}

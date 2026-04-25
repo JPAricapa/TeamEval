@@ -1,9 +1,9 @@
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, BookOpen, FileText,
   ClipboardList, BarChart3, GraduationCap, LogOut, Menu, X,
-  ChevronRight, Bell, Shield
+  ChevronRight, Bell, Shield, CheckCircle2
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/services/api'
@@ -15,6 +15,14 @@ interface NavItem {
   label: string
   icon: React.ElementType
   href: string
+}
+
+interface NotificationItem {
+  title: string
+  description: string
+  href: string
+  icon: React.ElementType
+  tone: 'blue' | 'green' | 'amber'
 }
 
 const navItems: Record<Role, NavItem[]> = {
@@ -36,12 +44,83 @@ const navItems: Record<Role, NavItem[]> = {
   ],
 }
 
+const notificationTone = {
+  ADMIN: 'blue',
+  TEACHER: 'amber',
+  STUDENT: 'green',
+} as const
+
+function getNotificationItems(role: Role): NotificationItem[] {
+  if (role === 'ADMIN') {
+    return [
+      {
+        title: 'Usuarios y accesos',
+        description: 'Revisa estados activos, roles y nuevos registros.',
+        href: '/admin/users',
+        icon: Users,
+        tone: notificationTone.ADMIN,
+      },
+      {
+        title: 'Historial de cambios',
+        description: 'Consulta la auditoría de acciones recientes.',
+        href: '/admin/audit',
+        icon: Shield,
+        tone: 'green',
+      },
+    ]
+  }
+
+  if (role === 'TEACHER') {
+    return [
+      {
+        title: 'Procesos de evaluación',
+        description: 'Verifica borradores, procesos activos y cierres.',
+        href: '/teacher/evaluations',
+        icon: ClipboardList,
+        tone: notificationTone.TEACHER,
+      },
+      {
+        title: 'Evaluar estudiantes',
+        description: 'Completa evaluaciones docentes pendientes.',
+        href: '/teacher/pending',
+        icon: BarChart3,
+        tone: 'blue',
+      },
+      {
+        title: 'Rúbricas disponibles',
+        description: 'Confirma que cada curso tenga instrumentos asociados.',
+        href: '/teacher/rubrics',
+        icon: FileText,
+        tone: 'green',
+      },
+    ]
+  }
+
+  return [
+    {
+      title: 'Evaluaciones pendientes',
+      description: 'Completa autoevaluaciones y evaluaciones de compañeros.',
+      href: '/student/evaluations',
+      icon: ClipboardList,
+      tone: notificationTone.STUDENT,
+    },
+    {
+      title: 'Resultados publicados',
+      description: 'Consulta tus puntajes consolidados cuando el proceso cierre.',
+      href: '/student/results',
+      icon: CheckCircle2,
+      tone: 'blue',
+    },
+  ]
+}
+
 interface AppLayoutProps {
   role: Role
 }
 
 export function AppLayout({ role }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
@@ -56,6 +135,11 @@ export function AppLayout({ role }: AppLayoutProps) {
     items
       .filter((item) => location.pathname === item.href || location.pathname.startsWith(`${item.href}/`))
       .sort((a, b) => b.href.length - a.href.length)[0] ?? items[0]
+  const notificationItems = getNotificationItems(user?.role ?? role)
+
+  useEffect(() => {
+    setNotificationsOpen(false)
+  }, [location.pathname])
 
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem('refreshToken')
@@ -64,6 +148,11 @@ export function AppLayout({ role }: AppLayoutProps) {
     }
     logout()
     navigate('/login')
+  }
+
+  const openNotification = (href: string) => {
+    setNotificationsOpen(false)
+    navigate(href)
   }
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
@@ -182,10 +271,51 @@ export function AppLayout({ role }: AppLayoutProps) {
               TeamEval / {getRoleName(user?.role ?? role)} / {currentItem?.label}
             </p>
           </div>
-          <button className="relative rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Notificaciones">
-            <Bell className="w-5 h-5" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-white" />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setNotificationsOpen((current) => !current)}
+              className="relative rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Notificaciones"
+              aria-expanded={notificationsOpen}
+            >
+              <Bell className="w-5 h-5" />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-white" />
+            </button>
+
+            {notificationsOpen && (
+              <div className="absolute right-0 top-11 z-40 w-[min(calc(100vw-2rem),22rem)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-gray-950/15">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <p className="text-sm font-semibold text-gray-950">Notificaciones</p>
+                  <p className="mt-0.5 text-xs text-gray-500">Actividad y tareas de tu rol</p>
+                </div>
+                <div className="max-h-80 overflow-y-auto p-2">
+                  {notificationItems.map((item) => (
+                    <button
+                      key={item.href}
+                      type="button"
+                      onClick={() => openNotification(item.href)}
+                      className="flex w-full items-start gap-3 rounded-xl p-3 text-left transition-colors hover:bg-gray-50"
+                    >
+                      <span className={cn(
+                        'mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                        item.tone === 'green' && 'bg-emerald-50 text-emerald-700',
+                        item.tone === 'amber' && 'bg-amber-50 text-amber-700',
+                        item.tone === 'blue' && 'bg-sky-50 text-sky-700'
+                      )}>
+                        <item.icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-gray-900">{item.title}</span>
+                        <span className="mt-0.5 block text-xs leading-5 text-gray-500">{item.description}</span>
+                      </span>
+                      <ChevronRight className="mt-2 h-4 w-4 text-gray-300" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/10">
               <span className="text-xs font-bold text-primary">
