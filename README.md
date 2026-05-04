@@ -2,6 +2,12 @@
 
 Plataforma web para evaluar trabajo en equipo en cursos universitarios. TeamEval permite gestionar cursos, grupos y equipos, asignar rúbricas, ejecutar procesos de autoevaluación, coevaluación y heteroevaluación, consolidar resultados y consultar analítica académica.
 
+## Autoría y apoyo institucional
+
+Este software fue diseñado por María José Colorado Morales, Juan Pablo Aricapa Bedoya y Jorge Alejandro Aldana Gutierrez.
+
+TeamEval fue desarrollado en apoyo a la Universidad del Quindío y se prepara para su registro ante la Dirección Nacional de Derecho de Autor (DNDA).
+
 ## Qué resuelve
 
 - Gestión de cursos, grupos, equipos y estudiantes.
