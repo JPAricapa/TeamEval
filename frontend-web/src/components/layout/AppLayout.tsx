@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, BookOpen, FileText,
   ClipboardList, BarChart3, GraduationCap, LogOut, Menu, X,
-  ChevronRight, Bell, Shield, CheckCircle2
+  ChevronRight, Bell, Shield, CheckCircle2, Info
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/services/api'
@@ -135,6 +135,7 @@ interface AppLayoutProps {
 export function AppLayout({ role }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
@@ -298,6 +299,17 @@ export function AppLayout({ role }: AppLayoutProps) {
             </button>
 
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setNotificationsOpen(false)
+              setAboutOpen(true)
+            }}
+            className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Acerca de TeamEval"
+          >
+            <Info className="h-4 w-4" />
+          </button>
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 ring-1 ring-primary/10">
               <span className="text-xs font-bold text-primary">
@@ -361,6 +373,48 @@ export function AppLayout({ role }: AppLayoutProps) {
                 ))}
               </div>
             </aside>
+          </div>
+        )}
+
+        {aboutOpen && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6">
+            <button
+              type="button"
+              className="absolute inset-0 cursor-default bg-gray-950/40 backdrop-blur-[2px]"
+              aria-label="Cerrar acerca de"
+              onClick={() => setAboutOpen(false)}
+            />
+            <section
+              className="relative w-full max-w-md rounded-lg border border-gray-200 bg-white p-5 shadow-2xl shadow-gray-950/25"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="about-title"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <GraduationCap className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h2 id="about-title" className="text-base font-semibold text-gray-950">
+                      Acerca de TeamEval
+                    </h2>
+                    <p className="mt-0.5 text-xs text-gray-500">Evaluación académica</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAboutOpen(false)}
+                  className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Cerrar acerca de"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="mt-5 text-sm leading-6 text-gray-600">
+                Este software fue creado por Juan Pablo Aricapa Bedoya, María José Colorado Morales y Jorge Alejandro Aldana Gutierrez, en apoyo a la Universidad del Quindío.
+              </p>
+            </section>
           </div>
         )}
 
